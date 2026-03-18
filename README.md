@@ -2,7 +2,7 @@
 
 Repository ini berisi source code dan dokumentasi untuk Tugas Besar mata kuliah IMPAL.
 
-## 👥 Anggota Kelompok (Aksata48)
+## 👥 Anggota Kelompok (Aksata)
 
 | No | Nama Lengkap | NIM |
 |:---:|:---|:---|
