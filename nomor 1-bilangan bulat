@@ -1,0 +1,46 @@
+#include <stdio.h>
+
+int main() {
+    int a, b, c;
+
+    printf("Masukkan 3 bilangan bulat:\n");
+    printf("a = ");
+    scanf("%d", &a);
+    printf("b = ");
+    scanf("%d", &b);
+    printf("c = ");
+    scanf("%d", &c);
+
+    if (a <= 0 || b <= 0 || c <= 0) {
+        printf("Bukan Segitiga\n");
+        return 0;
+    }
+
+    int max = a, s1, s2;
+    if (b > max) max = b;
+    if (c > max) max = c;
+
+    if (max == a) { s1 = b; s2 = c; }
+    else if (max == b) { s1 = a; s2 = c; }
+    else { s1 = a; s2 = b; }
+
+    if (max >= s1 + s2) {
+        printf("Bukan Segitiga(sisi terbesar >= jumlah dua sisi lainnya)\n");
+        return 0;
+    }
+
+    if (a == b && b == c) {
+        printf("SEGITIGA SAMA SISI\n");
+    }
+    else if (a == b || b == c || a == c) {
+        printf("SEGITIGA SAMA KAKI\n");
+    }
+    else if (max*max == s1*s1 + s2*s2) {
+        printf("SEGITIGA SIKU-SIKU\n");
+    }
+    else {
+        printf("SEGITIGA BEBAS\n");
+    }
+
+    return 0;
+}
