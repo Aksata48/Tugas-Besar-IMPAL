@@ -1,0 +1,49 @@
+#include <stdio.h>
+#include <math.h>
+
+int hampirSama(double x, double y) {
+    return fabs(x - y) <= 0.01 * fmax(x, y);
+}
+
+int main() {
+    double a, b, c;
+    printf("Masukkan bilangan a: ");
+    scanf("%lf", &a);
+
+    printf("Masukkan bilangan b: ");
+    scanf("%lf", &b);
+
+    printf("Masukkan bilangan c: ");
+    scanf("%lf", &c);
+
+    if (a <= 0 || b <= 0 || c <= 0) {
+        printf("Bukan segitiga\n");
+        return 0;
+    }
+
+    // Cari sisi terbesar
+    double max = a;
+    if (b > max) max = b;
+    if (c > max) max = c;
+
+    double sum = a + b + c - max;
+
+    if (max > sum || hampirSama(max, sum)) {
+    printf("Bukan segitiga\n");
+
+    }
+    else if (hampirSama(a,b) && hampirSama(b,c)) {
+        printf("Segitiga Sama Sisi\n");
+    }
+    else if (hampirSama(a,b) || hampirSama(b,c) || hampirSama(a,c)) {
+        printf("Segitiga Sama Kaki\n");
+    }
+    else if (hampirSama(max*max, (a*a + b*b + c*c - max*max))) {
+        printf("Segitiga Siku-Siku\n");
+    }
+    else {
+        printf("Segitiga Bebas\n");
+    }
+
+    return 0;
+}
