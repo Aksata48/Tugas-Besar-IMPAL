@@ -1,43 +1,40 @@
-import prisma from "@/lib/prisma"; // <-- Gunakan koneksi aman yang baru dibuat
-import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { nama, email, nomor_telepon, password } = body;
+    const { username, email, password, role } = body;
 
-    // Validasi kosong
-    if (!nama || !email || !nomor_telepon || !password) {
-      return NextResponse.json({ error: "Semua kolom wajib diisi!" }, { status: 400 });
+    // 1. Validasi keamanan dasar
+    if (!username || !email || !password || !role) {
+      return NextResponse.json({ message: "Semua kolom wajib diisi" }, { status: 400 });
     }
 
-    const userLama = await prisma.user.findUnique({
-      where: { email: email },
-    });
-
-    if (userLama) {
-      return NextResponse.json({ error: "Email sudah terdaftar!" }, { status: 400 });
+    // 2. Cek apakah email sudah dipakai
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return NextResponse.json({ message: "Email ini sudah terdaftar, silakan gunakan email lain." }, { status: 400 });
     }
 
+    // 3. Kunci password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const userBaru = await prisma.user.create({
+    // 4. Masukkan ke database
+    const newUser = await prisma.user.create({
       data: {
-        nama,
+        username,
         email,
-        nomor_telepon,
         password: hashedPassword,
+        role,
       },
     });
 
-    // Jangan kembalikan password ke frontend demi keamanan
-    const { password: _, ...userTanpaPassword } = userBaru;
-
-    return NextResponse.json({ message: "Registrasi berhasil!", user: userTanpaPassword }, { status: 201 });
-    
+    return NextResponse.json({ message: "Registrasi berhasil" }, { status: 201 });
   } catch (error) {
-    console.error("Error Register API:", error); // Munculkan error di terminal untuk di-debug
-    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+    console.error("Register Error:", error);
+    // Jangan pernah kirim 'error' mentah ke NextResponse, ini yang bikin crash!
+    return NextResponse.json({ message: "Terjadi kesalahan di server pangkalan data." }, { status: 500 });
   }
 }

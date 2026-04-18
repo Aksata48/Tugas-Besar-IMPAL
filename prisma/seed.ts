@@ -2,7 +2,6 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import bcrypt from 'bcryptjs'
 
-// Menggunakan mesin yang terbukti berhasil kemarin
 const adapter = new PrismaBetterSqlite3({ url: "file:./dev.db" })
 const prisma = new PrismaClient({ adapter })
 
@@ -43,15 +42,22 @@ async function main() {
   const kts = []
   for (const k of katNames) { kts.push(await prisma.kategori.create({ data: { nama_kategori: k } })) }
 
-  console.log("Menanam 10 Data User... 👤")
+  console.log("Menanam 10 Data User & 1 Owner... 👤")
   const pass = await bcrypt.hash('password123', 10)
+  
+  // Buat 1 Akun Pemilik Cafe (Owner)
+  await prisma.user.create({
+    data: { username: 'Bos Kafe', email: 'owner@gmail.com', password: pass, role: 'OWNER' }
+  })
+
+  // Buat 10 Akun User Biasa (Umum)
   for (let i = 1; i <= 10; i++) {
     await prisma.user.create({
       data: {
-        nama: `User Ke-${i}`,
-        email: `user${i}@mail.com`,
-        nomor_telepon: `08123456780${i}`,
-        password: pass
+        username: `Pengguna ${i}`,
+        email: `user${i}@gmail.com`,
+        password: pass,
+        role: 'USER'
       }
     })
   }
@@ -62,7 +68,7 @@ async function main() {
   for (let i = 0; i < tmpt.length; i++) {
     await prisma.tempat.create({
       data: {
-        id_kampus: kps[0].id_kampus, // Semua dipusatkan ke Telkom biar gampang dicek
+        id_kampus: kps[0].id_kampus,
         nama_tempat: tmpt[i],
         alamat: `Alamat No. ${i+1}`,
         jam_buka: '08:00 - 22:00',

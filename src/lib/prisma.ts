@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 
 const prismaClientSingleton = () => {
-  // Gunakan API baru yang sama
+  // 🔥 Pasang mesin adapter di sini agar website tidak crash!
   const adapter = new PrismaBetterSqlite3({ url: "file:./dev.db" })
   return new PrismaClient({ adapter })
 }

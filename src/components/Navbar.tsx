@@ -1,13 +1,12 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { UserCircle, LogOut } from "lucide-react";
+import { UserCircle, LogOut, ShieldAlert } from "lucide-react";
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Cek apakah ada user yang sedang login
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -16,7 +15,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    window.location.reload(); // Refresh halaman setelah logout
+    window.location.reload(); 
   };
 
   return (
@@ -34,11 +33,16 @@ export default function Navbar() {
         <Link href="/" className="text-gray-600 font-medium hover:text-blue-600 transition">Beranda</Link>
         
         {user ? (
-          // JIKA SUDAH LOGIN: Tampilkan Nama Profil
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
-              <UserCircle size={20} className="text-blue-600" />
-              <span className="text-sm font-semibold text-gray-700">{user.nama}</span>
+              {user.role === "OWNER" ? (
+                <ShieldAlert size={20} className="text-orange-500" />
+              ) : (
+                <UserCircle size={20} className="text-blue-600" />
+              )}
+              <span className="text-sm font-semibold text-gray-700">
+                {user.username} {user.role === "OWNER" && "(Owner)"}
+              </span>
             </div>
             <button 
               onClick={handleLogout}
@@ -49,7 +53,6 @@ export default function Navbar() {
             </button>
           </div>
         ) : (
-          // JIKA BELUM LOGIN: Tampilkan Tombol Masuk
           <Link 
             href="/login" 
             className="bg-blue-600 text-white font-semibold px-5 py-2 rounded-lg transition hover:bg-blue-700 shadow-sm"

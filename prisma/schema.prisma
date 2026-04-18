@@ -1,71 +1,25 @@
-// datasource dan generator tetap sama
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
   provider = "sqlite"
 }
 
-// --- MODEL BERDASARKAN CLASS DIAGRAM ---
-
 model User {
-  id_user       String    @id @default(cuid())
-  nama          String
-  email         String    @unique
+  id_user       String   @id @default(cuid())
+  username      String   
+  email         String   @unique
   password      String
-  nomor_telepon String
-  
-  // Relasi
-  ulasan        Ulasan[]
-  favorit       Favorit[]
+  role          String   @default("USER") 
 }
 
 model Kampus {
-  id_kampus     String    @id @default(cuid())
+  id_kampus     String   @id @default(cuid())
   nama_kampus   String
   alamat_kampus String
-  
-  // Relasi
   tempat        Tempat[]
-}
-
-model Tempat {
-  id_tempat     String    @id @default(cuid())
-  id_kampus     String
-  nama_tempat   String
-  alamat        String
-  jam_buka      String    // Di diagram Time, di SQLite kita gunakan String
-  kisaran_harga String
-
-  // Relasi ke Kampus
-  kampus        Kampus    @relation(fields: [id_kampus], references: [id_kampus])
-
-  // Relasi lainnya
-  ulasan        Ulasan[]
-  favorit       Favorit[]
-  fasilitas     TempatFasilitas[]
-  kategori      TempatKategori[]
-}
-
-model Ulasan {
-  id_ulasan  String @id @default(cuid())
-  id_user    String
-  id_tempat  String
-  rating     Int
-  komentar   String
-
-  user       User   @relation(fields: [id_user], references: [id_user])
-  tempat     Tempat @relation(fields: [id_tempat], references: [id_tempat])
-}
-
-model Favorit {
-  id_favorit String @id @default(cuid())
-  id_user    String
-  id_tempat  String
-
-  user       User   @relation(fields: [id_user], references: [id_user])
-  tempat     Tempat @relation(fields: [id_tempat], references: [id_tempat])
 }
 
 model Fasilitas {
@@ -74,28 +28,36 @@ model Fasilitas {
   tempat         TempatFasilitas[]
 }
 
-// Tabel Perantara (Intersection Table) sesuai diagram
-model TempatFasilitas {
-  id_tempat    String
-  id_fasilitas String
-
-  tempat       Tempat    @relation(fields: [id_tempat], references: [id_tempat])
-  fasilitas    Fasilitas @relation(fields: [id_fasilitas], references: [id_fasilitas])
-
-  @@id([id_tempat, id_fasilitas])
-}
-
 model Kategori {
   id_kategori   String           @id @default(cuid())
   nama_kategori String
   tempat        TempatKategori[]
 }
 
-// Tabel Perantara (Intersection Table) sesuai diagram
+model Tempat {
+  id_tempat     String            @id @default(cuid())
+  id_kampus     String
+  nama_tempat   String
+  alamat        String
+  jam_buka      String
+  kisaran_harga String
+  kampus        Kampus            @relation(fields: [id_kampus], references: [id_kampus])
+  fasilitas     TempatFasilitas[]
+  kategori      TempatKategori[]
+}
+
+model TempatFasilitas {
+  id_tempat    String
+  id_fasilitas String
+  tempat       Tempat    @relation(fields: [id_tempat], references: [id_tempat])
+  fasilitas    Fasilitas @relation(fields: [id_fasilitas], references: [id_fasilitas])
+
+  @@id([id_tempat, id_fasilitas])
+}
+
 model TempatKategori {
   id_tempat   String
   id_kategori String
-
   tempat      Tempat   @relation(fields: [id_tempat], references: [id_tempat])
   kategori    Kategori @relation(fields: [id_kategori], references: [id_kategori])
 
