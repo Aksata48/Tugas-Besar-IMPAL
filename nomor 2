@@ -1,0 +1,85 @@
+#include <iostream>
+#include <stdio.h>
+
+int main() {
+    int pilihan = -1, konfirmasi;
+    int saldo = 50000;
+    int jumlah;
+    int biaya = 1850;
+    char nomor[20];
+
+    while (pilihan != 0) {
+        printf("\n=== Layanan *858# ===\n");
+        printf("1. Transfer Pulsa\n");
+        printf("2. Masa Aktif\n");
+        printf("3. Minta Pulsa\n");
+        printf("4. Auto TP\n");
+        printf("5. Delete Auto TP\n");
+        printf("6. List Auto TP\n");
+        printf("7. Cek Kupon Undian TP\n");
+        printf("0. Keluar\n");
+        printf("Pilih menu: ");
+        scanf("%d", &pilihan);
+
+        if (pilihan == 1) {
+            printf("\nSilahkan masukkan nomor tujuan Transfer Pulsa:\n");
+            printf("(contoh: 08xxxx atau 628xxxx)\n");
+            scanf("%s", nomor);
+
+            printf("\nSilahkan masukkan jumlah pulsa:\n");
+            printf("(min 5000, max 1 jt)\n");
+            scanf("%d", &jumlah);
+
+            if (jumlah < 5000 || jumlah > 1000000) {
+                printf("Jumlah tidak valid\n");
+            } else {
+                int ulang = 1;
+
+                while (ulang == 1) {
+                    printf("\nHati2 penipuan.\n");
+                    printf("Anda akan Transfer Pulsa %d ke %s (Biaya %d)\n", jumlah, nomor, biaya);
+                    printf("1. Ya\n");
+                    printf("9. Back\n");
+                    printf("0. Home\n");
+                    printf("Pilih: ");
+                    scanf("%d", &konfirmasi);
+
+                    if (konfirmasi == 1) {
+                        if (saldo >= (jumlah + biaya)) {
+                            saldo -= (jumlah + biaya);
+                            printf("Transfer berhasil!\n");
+                            printf("Sisa saldo: %d\n", saldo);
+                        } else {
+                            printf("Saldo tidak cukup\n");
+                        }
+                        ulang = 0;
+
+                    } else if (konfirmasi == 9) {
+                        printf("Masukkan jumlah pulsa lagi: ");
+                        scanf("%d", &jumlah);
+
+                        if (jumlah < 5000 || jumlah > 1000000) {
+                            printf("Jumlah tidak valid\n");
+                            ulang = 0;
+                        }
+
+                    } else if (konfirmasi == 0) {
+                        printf("Kembali ke menu utama\n");
+                        ulang = 0;
+
+                    } else {
+                        printf("Pilihan tidak valid\n");
+                    }
+                }
+            }
+
+        } else if (pilihan == 0) {
+            printf("Terima kasih\n");
+
+        } else {
+            printf("Menu belum tersedia\n");
+        }
+    }
+
+    return 0;
+}
