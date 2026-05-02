@@ -12,10 +12,12 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
 
   // Logika Filter Data
   const filteredData = tempatList.filter((tempat) => {
+    // Cocokkan nama atau alamat dengan kolom pencarian
     const matchSearch = 
       tempat.nama_tempat.toLowerCase().includes(searchQuery.toLowerCase()) || 
       tempat.alamat.toLowerCase().includes(searchQuery.toLowerCase());
     
+    // Cocokkan kategori
     const categoryName = tempat.kategori[0]?.kategori.nama_kategori || 'Lainnya';
     const matchCategory = activeCategory === "Semua" || categoryName === activeCategory;
     
@@ -78,12 +80,12 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
           <div className="text-center py-20 text-gray-400">
             <Search size={48} className="mx-auto mb-4 opacity-50" />
             <p className="text-lg font-medium">Yah, tempat yang kamu cari tidak ditemukan.</p>
+            <p className="text-sm mt-2">Data kafe masih kosong karena database baru di-reset.</p>
             <button onClick={() => {setSearchQuery(""); setActiveCategory("Semua");}} className="mt-4 text-blue-600 font-bold hover:underline">Reset Pencarian</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {filteredData.map((tempat, index) => (
-              // 🔥 PERBAIKAN: Mengubah <div> menjadi <Link> agar bisa diklik ke halaman detail
               <Link 
                 href={`/tempat/${tempat.id_tempat}`} 
                 key={tempat.id_tempat} 
@@ -138,7 +140,6 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
                   </div>
                 </div>
 
-                {/* 🔥 PERBAIKAN: Mengembalikan tombol Lihat Detail */}
                 <div className="mt-4 pt-3 border-t border-gray-100">
                   <div className="w-full text-center py-2 bg-blue-50 text-blue-600 font-bold rounded-lg group-hover:bg-blue-600 group-hover:text-white transition">
                     Lihat Detail

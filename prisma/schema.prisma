@@ -8,11 +8,17 @@ datasource db {
 }
 
 model User {
-  id_user       String   @id @default(cuid())
-  username      String   
-  email         String   @unique
-  password      String?
-  role          String   @default("USER") 
+  id          String   @id @default(cuid())
+  username    String
+  email       String   @unique
+  password    String?  
+  role        String   @default("USER")
+  no_telp     String?  
+  google_id   String?  @unique
+  foto_profil String?  // FITUR BARU: Menyimpan alamat file foto
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Kampus {
@@ -62,4 +68,9 @@ model TempatKategori {
   kategori    Kategori @relation(fields: [id_kategori], references: [id_kategori])
 
   @@id([id_tempat, id_kategori])
+}
+
+model DetailTempat  {
+  voucher String  @id @default(cuid())
+  nama_tempat String
 }

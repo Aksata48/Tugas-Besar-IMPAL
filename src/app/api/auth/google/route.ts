@@ -7,13 +7,8 @@ const client = new OAuth2Client(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
 export async function POST(request: Request) {
   try {
-    const { credential, role } = await request.json();
+    const { credential, role, action, email_lama } = await request.json();
 
-    if (!credential || !role) {
-      return NextResponse.json({ message: "Data tidak lengkap" }, { status: 400 });
-    }
-
-    // 1. Verifikasi token Google
     const ticket = await client.verifyIdToken({
       idToken: credential,
       audience: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
@@ -24,30 +19,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Token Google tidak valid" }, { status: 400 });
     }
 
+    // FITUR BARU: MODE BIND GOOGLE
+    if (action === "bind" && email_lama) {
+      const updatedUser = await prisma.user.update({
+        where: { email: email_lama },
+        data: { google_id: payload.sub }
+      });
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      return NextResponse.json({ message: "Akun Google berhasil dikaitkan!", user: userWithoutPassword }, { status: 200 });
+    }
+
+    // MODE LAMA: LOGIN / REGISTER
     const email = payload.email;
     const name = payload.name || "User Google";
 
-    // 2. Cek user di Database
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      // Register otomatis jika belum ada
       user = await prisma.user.create({
-        data: {
-          username: name,
-          email: email,
-          role: role,
-        }
+        data: { username: name, email: email, role: role, google_id: payload.sub }
       });
     } else {
-      // Jika sudah ada, cek apakah rolenya cocok dengan pintu masuknya
       if (user.role !== role) {
-        const roleText = user.role === "USER" ? "Pengguna Biasa" : "Pemilik Tempat";
-        return NextResponse.json({ message: `Akses ditolak. Akun ini terdaftar sebagai ${roleText}` }, { status: 403 });
+        return NextResponse.json({ message: "Akses ditolak. Role tidak sesuai." }, { status: 403 });
+      }
+      if (!user.google_id) {
+        user = await prisma.user.update({ where: { email }, data: { google_id: payload.sub } });
       }
     }
 
-    // 3. Set Cookie (Wajib pakai await untuk Next.js terbaru)
     const cookieStore = await cookies();
     cookieStore.set('user_role', user.role, { path: '/' });
 
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Login Google Berhasil", user: userWithoutPassword }, { status: 200 });
 
   } catch (error) {
-    console.error("Google Auth Error Asli:", error);
+    console.error("Google Auth Error:", error);
     return NextResponse.json({ message: "Terjadi kesalahan server saat verifikasi Google" }, { status: 500 });
   }
 }
