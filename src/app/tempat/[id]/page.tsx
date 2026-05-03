@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2 } from "lucide-react";
+import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2, MessageSquare, Ticket } from "lucide-react";
 import FavoriteActionCard from "./FavoriteActionCard";
 
 // Server Component: Sekarang params harus di-await sebelum dipakai
@@ -23,6 +23,8 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
       kategori: {
         include: { kategori: true },
       },
+      // --- TAMBAHAN: Ambil data dari model place ---
+      places: true, 
     },
   });
 
@@ -30,6 +32,14 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
   if (!tempat) {
     notFound();
   }
+
+  // --- PERBAIKAN ERROR TYPESCRIPT ---
+  // Gunakan type casting 'as any' agar TS tidak error jika generator belum update
+  const reviews = (tempat as any).places || [];
+  const hasReviews = reviews.length > 0;
+  const displayRating = hasReviews 
+    ? (reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / reviews.length).toFixed(1)
+    : "New";
 
   return (
     <main className="min-h-screen bg-gray-50 pb-20">
@@ -56,7 +66,7 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               {tempat.kategori[0]?.kategori.nama_kategori || 'Nongki'}
             </span>
             <div className="flex items-center gap-1 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-              <Star size={16} className="fill-yellow-900" /> 4.5
+              <Star size={16} className="fill-yellow-900" /> {displayRating}
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2">{tempat.nama_tempat}</h1>
@@ -115,13 +125,42 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               ))}
             </div>
           </div>
+
+          {/* --- TAMBAHAN: Bagian Ulasan/Review --- */}
+          <div>
+            <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
+              <MessageSquare size={20} /> Ulasan & Rating
+            </h3>
+            <div className="space-y-4">
+              {hasReviews ? (
+                reviews.map((rev: any) => (
+                  <div key={rev.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 py-1 rounded-lg text-xs font-bold border border-yellow-100">
+                        <Star size={12} className="fill-yellow-700" /> {rev.rating}
+                      </div>
+                      {rev.voucher && (
+                        <div className="flex items-center gap-1 text-green-600 text-[10px] font-bold uppercase tracking-wider bg-green-50 px-2 py-1 rounded-lg border border-green-100">
+                          <Ticket size={12} /> {rev.voucher}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-gray-700 font-medium italic">"{rev.review}"</p>
+                    <p className="text-[10px] text-gray-400 mt-3 uppercase font-black tracking-widest text-right">— {rev.name}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 italic text-sm">Belum ada ulasan untuk tempat ini.</p>
+              )}
+            </div>
+          </div>
+          {/* --- AKHIR TAMBAHAN --- */}
           
         </div>
 
         {/* Kolom Kanan: Sidebar Aksi */}
         <div className="space-y-6">
           <div className="sticky top-24">
-            {/* KUNCI JAWABAN: Kita panggil komponen FavoriteActionCard di sini! */}
             <FavoriteActionCard tempatId={id} />
           </div>
         </div>

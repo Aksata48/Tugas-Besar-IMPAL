@@ -7,19 +7,19 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   username    String
-  email       String   @unique
-  password    String?  
-  role        String   @default("USER")
-  no_telp     String?  
-  google_id   String?  @unique
-  foto_profil String?  
+  email       String  @unique
+  password    String?
+  role        String  @default("USER")
+  no_telp     String?
+  google_id   String? @unique
+  foto_profil String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  favorit   Favorit[]
+  favorit Favorit[]
 }
 
 model Kampus {
@@ -27,6 +27,7 @@ model Kampus {
   nama_kampus   String
   alamat_kampus String
   tempat        Tempat[]
+  places        Place[]
 }
 
 model Kategori {
@@ -42,7 +43,7 @@ model Fasilitas {
 }
 
 model Tempat {
-  id_tempat     String   @id
+  id_tempat     String @id
   nama_tempat   String
   alamat        String
   jam_buka      String
@@ -53,6 +54,7 @@ model Tempat {
   fasilitas TempatFasilitas[]
   kategori  TempatKategori[]
   favorit   Favorit[]
+  places    Place[]
 }
 
 model TempatKategori {
@@ -79,8 +81,21 @@ model Favorit {
   tempatId  String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tempat    Tempat   @relation(fields: [tempatId], references: [id_tempat], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tempat Tempat @relation(fields: [tempatId], references: [id_tempat], onDelete: Cascade)
 
   @@unique([userId, tempatId])
+}
+
+model Place {
+  id      String  @id @default(cuid())
+  name    String
+  rating  Float   @default(0.0)
+  review  String? // Untuk ulasan teks
+  voucher String? // Untuk kode atau deskripsi voucher
+
+  id_kampus String?
+  kampus    Kampus? @relation(fields: [id_kampus], references: [id_kampus])
+  tempatId  String
+  tempat    Tempat @relation(fields: [tempatId], references: [id_tempat])
 }
