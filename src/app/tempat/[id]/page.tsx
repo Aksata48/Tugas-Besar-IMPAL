@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2 } from "lucide-react";
+import FavoriteActionCard from "./FavoriteActionCard";
 
 // Server Component: Sekarang params harus di-await sebelum dipakai
 export default async function DetailTempatPage({ params }: { params: Promise<{ id: string }> }) {
@@ -119,22 +120,9 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
 
         {/* Kolom Kanan: Sidebar Aksi */}
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Ingin ke sini?</h3>
-            <p className="text-gray-500 text-sm mb-6">Simpan tempat ini atau bagikan ke teman nongkrongmu.</p>
-            
-            <button className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow-md mb-3">
-              Simpan ke Favorit
-            </button>
-            <button className="w-full bg-white text-gray-800 font-bold py-3 rounded-xl border-2 border-gray-200 hover:bg-gray-50 transition">
-              Bagikan Lokasi
-            </button>
-
-            <hr className="my-6 border-gray-100" />
-            
-            <p className="text-[10px] text-center text-gray-400 font-mono">
-              REF_ID: {tempat.id_tempat}
-            </p>
+          <div className="sticky top-24">
+            {/* KUNCI JAWABAN: Kita panggil komponen FavoriteActionCard di sini! */}
+            <FavoriteActionCard tempatId={id} />
           </div>
         </div>
 

@@ -1,6 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -15,62 +14,73 @@ model User {
   role        String   @default("USER")
   no_telp     String?  
   google_id   String?  @unique
-  foto_profil String?  // FITUR BARU: Menyimpan alamat file foto
+  foto_profil String?  
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  favorit   Favorit[]
 }
 
 model Kampus {
-  id_kampus     String   @id @default(cuid())
+  id_kampus     String   @id
   nama_kampus   String
   alamat_kampus String
   tempat        Tempat[]
 }
 
-model Fasilitas {
-  id_fasilitas   String            @id @default(cuid())
-  nama_fasilitas String
-  tempat         TempatFasilitas[]
-}
-
 model Kategori {
-  id_kategori   String           @id @default(cuid())
+  id_kategori   String           @id
   nama_kategori String
   tempat        TempatKategori[]
 }
 
+model Fasilitas {
+  id_fasilitas   String            @id
+  nama_fasilitas String
+  tempat         TempatFasilitas[]
+}
+
 model Tempat {
-  id_tempat     String            @id @default(cuid())
-  id_kampus     String
+  id_tempat     String   @id
   nama_tempat   String
   alamat        String
   jam_buka      String
   kisaran_harga String
-  kampus        Kampus            @relation(fields: [id_kampus], references: [id_kampus])
-  fasilitas     TempatFasilitas[]
-  kategori      TempatKategori[]
-}
+  id_kampus     String
 
-model TempatFasilitas {
-  id_tempat    String
-  id_fasilitas String
-  tempat       Tempat    @relation(fields: [id_tempat], references: [id_tempat])
-  fasilitas    Fasilitas @relation(fields: [id_fasilitas], references: [id_fasilitas])
-
-  @@id([id_tempat, id_fasilitas])
+  kampus    Kampus            @relation(fields: [id_kampus], references: [id_kampus])
+  fasilitas TempatFasilitas[]
+  kategori  TempatKategori[]
+  favorit   Favorit[]
 }
 
 model TempatKategori {
   id_tempat   String
   id_kategori String
-  tempat      Tempat   @relation(fields: [id_tempat], references: [id_tempat])
-  kategori    Kategori @relation(fields: [id_kategori], references: [id_kategori])
+  tempat      Tempat   @relation(fields: [id_tempat], references: [id_tempat], onDelete: Cascade)
+  kategori    Kategori @relation(fields: [id_kategori], references: [id_kategori], onDelete: Cascade)
 
   @@id([id_tempat, id_kategori])
 }
 
-model DetailTempat  {
-  voucher String  @id @default(cuid())
-  nama_tempat String
+model TempatFasilitas {
+  id_tempat    String
+  id_fasilitas String
+  tempat       Tempat    @relation(fields: [id_tempat], references: [id_tempat], onDelete: Cascade)
+  fasilitas    Fasilitas @relation(fields: [id_fasilitas], references: [id_fasilitas], onDelete: Cascade)
+
+  @@id([id_tempat, id_fasilitas])
+}
+
+model Favorit {
+  id        String   @id @default(cuid())
+  userId    String
+  tempatId  String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tempat    Tempat   @relation(fields: [tempatId], references: [id_tempat], onDelete: Cascade)
+
+  @@unique([userId, tempatId])
 }

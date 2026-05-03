@@ -59,6 +59,16 @@ export default function Navbar() {
                 >
                   {user.role === "OWNER" ? "Dashboard" : "Beranda"}
                 </Link>
+
+                {/* 🔥 TAMBAHAN: Menu Favorit (Hanya muncul untuk USER biasa) */}
+                {user.role !== "OWNER" && (
+                  <Link 
+                    href="/favorites" 
+                    className="text-sm font-bold text-gray-600 hover:text-blue-600 transition"
+                  >
+                    Favorit
+                  </Link>
+                )}
                 
                 <div className="h-6 w-px bg-gray-200"></div>
 
@@ -105,7 +115,6 @@ export default function Navbar() {
           {user ? (
             <>
               <div className="px-3 py-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3">
-                
                 {/* FOTO PROFIL DI MOBILE MENU */}
                 <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-blue-200 bg-blue-100 flex items-center justify-center shrink-0">
                   {user.foto_profil ? (
@@ -114,7 +123,6 @@ export default function Navbar() {
                     <User size={20} className="text-blue-600" />
                   )}
                 </div>
-
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Masuk sebagai</p>
                   <p className="font-bold text-gray-900">{user.username}</p>
@@ -123,6 +131,14 @@ export default function Navbar() {
               <Link href={user.role === "OWNER" ? "/owner/dashboard" : "/"} className="block px-3 py-2 text-base font-bold text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition">
                 {user.role === "OWNER" ? "Dashboard" : "Beranda"}
               </Link>
+              
+              {/* 🔥 TAMBAHAN: Menu Favorit Mobile */}
+              {user.role !== "OWNER" && (
+                <Link href="/favorites" className="block px-3 py-2 text-base font-bold text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition">
+                  Favorit
+                </Link>
+              )}
+
               <Link href="/profile" className="block px-3 py-2 text-base font-bold text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition">
                 Pengaturan Profil
               </Link>
