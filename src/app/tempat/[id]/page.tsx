@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2, MessageSquare, Ticket } from "lucide-react";
 import FavoriteActionCard from "./FavoriteActionCard";
+import ReviewForm from "@/detailTempat/reviewfrom";
 
 // Server Component: Sekarang params harus di-await sebelum dipakai
 export default async function DetailTempatPage({ params }: { params: Promise<{ id: string }> }) {
@@ -152,6 +153,11 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               ) : (
                 <p className="text-gray-500 italic text-sm">Belum ada ulasan untuk tempat ini.</p>
               )}
+            </div>
+
+            {/* --- FORM TULIS ULASAN --- */}
+            <div className="mt-8">
+              <ReviewForm tempatId={id} />
             </div>
           </div>
           {/* --- AKHIR TAMBAHAN --- */}
