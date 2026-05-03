@@ -46,3 +46,6 @@ next-env.d.ts
 .env
 prisma/*.db
 prisma/*.db-journal
+
+# Folder Upload Foto Lokal
+/public/uploads

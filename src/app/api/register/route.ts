@@ -2,39 +2,83 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { username, email, password, role } = body;
+    const body = await req.json();
+    const { username, email, password } = body;
 
-    // 1. Validasi keamanan dasar
-    if (!username || !email || !password || !role) {
-      return NextResponse.json({ message: "Semua kolom wajib diisi" }, { status: 400 });
+    // 1. Validasi Input Kosong (Mencegah submit data kosong)
+    if (!username || !email || !password) {
+      return NextResponse.json({ message: "Semua field wajib diisi!" }, { status: 400 });
     }
 
-    // 2. Cek apakah email sudah dipakai
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    // 2. PENANGKAL XSS (Sanitasi Username)
+    // Aturan: Hanya boleh huruf, angka, dan garis bawah (_). Minimal 3, maksimal 20 karakter.
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      return NextResponse.json(
+        { message: "Username hanya boleh berisi huruf, angka, dan garis bawah (_), tanpa spasi atau simbol HTML." },
+        { status: 400 }
+      );
+    }
+
+    // 3. Validasi Panjang Password (Skenario Negative Testing)
+    if (password.length < 8) {
+      return NextResponse.json(
+        { message: "Password terlalu pendek, minimal harus 8 karakter." },
+        { status: 400 }
+      );
+    }
+
+    // 4. Validasi Format Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { message: "Format email tidak valid." },
+        { status: 400 }
+      );
+    }
+
+    // 5. Cek Email Duplikat (Mencegah email yang sama mendaftar dua kali)
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email }
+    });
+
     if (existingUser) {
-      return NextResponse.json({ message: "Email ini sudah terdaftar, silakan gunakan email lain." }, { status: 400 });
+      return NextResponse.json(
+        { message: "Email sudah terdaftar, silakan gunakan email lain atau masuk ke akun Anda." },
+        { status: 400 }
+      );
     }
 
-    // 3. Kunci password
+    // 6. Hash Password untuk Keamanan Database
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Masukkan ke database
+    // 7. Simpan Data User Baru ke Database
     const newUser = await prisma.user.create({
       data: {
         username,
         email,
         password: hashedPassword,
-        role,
-      },
+        // Jika schema Anda mengatur role default "USER", Prisma akan otomatis mengisinya.
+        // Jika perlu diisi manual, buka komentar di bawah:
+        // role: "USER"
+      }
     });
 
-    return NextResponse.json({ message: "Registrasi berhasil" }, { status: 201 });
-  } catch (error) {
-    console.error("Register Error:", error);
-    // Jangan pernah kirim 'error' mentah ke NextResponse, ini yang bikin crash!
-    return NextResponse.json({ message: "Terjadi kesalahan di server pangkalan data." }, { status: 500 });
+    // 8. Hapus field password dari response demi keamanan (jangan pernah kirim password kembali ke client)
+    const { password: _, ...userWithoutPassword } = newUser;
+
+    return NextResponse.json(
+      { message: "Registrasi berhasil! Silakan masuk.", user: userWithoutPassword },
+      { status: 201 }
+    );
+
+  } catch (error: any) {
+    console.error("Register API Error:", error);
+    return NextResponse.json(
+      { message: "Terjadi kesalahan pada server. Silakan coba lagi." },
+      { status: 500 }
+    );
   }
 }
