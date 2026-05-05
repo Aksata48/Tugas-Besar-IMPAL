@@ -9,34 +9,80 @@ export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
   const [role, setRole] = useState<"USER" | "OWNER">("USER");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [err, setErr] = useState({ email: "", password: "", server: "" });
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Validasi Real-Time persis seperti di form Register
+  const validateRealTime = (name: string, value: string) => {
+    let errorMsg = "";
+    
+    if (name === "email") {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|yahoo\.co\.id|outlook\.com|hotmail\.com|icloud\.com)$/i;
+      if (!emailRegex.test(value) && value.length > 0) {
+        errorMsg = "Gunakan provider valid (contoh: @gmail.com, @yahoo.com)";
+      }
+    }
+    
+    if (name === "password") {
+      const pwdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,32}$/;
+      if (!pwdRegex.test(value) && value.length > 0) {
+        errorMsg = "Format password salah (8-32 karakter, huruf & angka)";
+      }
+    }
+    
+    setErr(prev => ({ ...prev, [name]: errorMsg }));
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    // Mencegah input lebih dari batas maksimal
+    if (name === "email" && value.length > 50) return;
+    if (name === "password" && value.length > 32) return;
+
+    setFormData(prev => ({ ...prev, [name]: value }));
+    validateRealTime(name, value);
+    setErr(prev => ({ ...prev, server: "" }));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    if (err.email || err.password) return;
 
-    const res = await fetch("/api/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password, role }),
-      headers: { "Content-Type": "application/json" },
-    });
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        body: JSON.stringify({ ...formData, role }),
+        headers: { "Content-Type": "application/json" },
+      });
 
-    const data = await res.json();
-    processLoginSuccess(res.ok, data);
+      const data = await res.json();
+      processLoginSuccess(res.ok, data);
+    } catch (error) {
+      setErr(prev => ({ ...prev, server: "Gagal terhubung ke server." }));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
-    setError("");
-    const res = await fetch("/api/auth/google", {
-      method: "POST",
-      body: JSON.stringify({ credential: credentialResponse.credential, role }),
-      headers: { "Content-Type": "application/json" },
-    });
+    setErr(prev => ({ ...prev, server: "" }));
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ credential: credentialResponse.credential, role }),
+        headers: { "Content-Type": "application/json" },
+      });
 
-    const data = await res.json();
-    processLoginSuccess(res.ok, data);
+      const data = await res.json();
+      processLoginSuccess(res.ok, data);
+    } catch (error) {
+      setErr(prev => ({ ...prev, server: "Terjadi kesalahan saat verifikasi Google." }));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const processLoginSuccess = (isOk: boolean, data: any) => {
@@ -49,7 +95,7 @@ export default function LoginPage() {
       }
       setTimeout(() => window.location.reload(), 100);
     } else {
-      setError(data.message || "Gagal masuk");
+      setErr(prev => ({ ...prev, server: data.message || "Email atau password salah." }));
     }
   };
 
@@ -93,12 +139,12 @@ export default function LoginPage() {
             <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">Login {role === "USER" ? "Pengguna" : "Pemilik"}</h2>
             <p className="text-center text-gray-500 text-sm mb-6">Gunakan akun Google atau email Anda</p>
 
-            {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm text-center font-medium border border-red-100">{error}</div>}
+            {err.server && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm text-center font-medium border border-red-100">{err.server}</div>}
 
             <div className="flex justify-center mb-6">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
-                onError={() => setError("Gagal terhubung dengan Google")}
+                onError={() => setErr(prev => ({ ...prev, server: "Gagal terhubung dengan Google" }))}
                 theme="outline"
                 shape="rectangular"
                 width="320px"
@@ -114,14 +160,38 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-                <input type="email" required placeholder="email@contoh.com" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition" onChange={(e) => setEmail(e.target.value)} />
+                <input 
+                  type="email" 
+                  name="email"
+                  required 
+                  maxLength={50}
+                  value={formData.email}
+                  placeholder="email@gmail.com" 
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2.5 bg-gray-50 border rounded-lg focus:bg-white focus:ring-2 outline-none transition ${err.email ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`} 
+                />
+                {err.email && <p className="text-red-500 text-xs mt-1 font-medium">{err.email}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-                <input type="password" required placeholder="••••••••" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition" onChange={(e) => setPassword(e.target.value)} />
+                <input 
+                  type="password" 
+                  name="password"
+                  required 
+                  maxLength={32}
+                  value={formData.password}
+                  placeholder="••••••••" 
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2.5 bg-gray-50 border rounded-lg focus:bg-white focus:ring-2 outline-none transition ${err.password ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`} 
+                />
+                {err.password && <p className="text-red-500 text-xs mt-1 font-medium">{err.password}</p>}
               </div>
-              <button type="submit" className={`w-full py-3 rounded-lg font-bold text-white transition mt-2 shadow-md ${role === "OWNER" ? "bg-orange-600 hover:bg-orange-700" : "bg-blue-600 hover:bg-blue-700"}`}>
-                Masuk Sekarang
+              <button 
+                type="submit" 
+                disabled={!!(err.email || err.password) || isLoading || !formData.email || !formData.password}
+                className={`w-full py-3 rounded-lg font-bold text-white transition mt-2 shadow-md ${role === "OWNER" ? "bg-orange-600 hover:bg-orange-700" : "bg-blue-600 hover:bg-blue-700"} disabled:bg-gray-400 disabled:cursor-not-allowed`}
+              >
+                {isLoading ? "Memproses..." : "Masuk Sekarang"}
               </button>
             </form>
           </div>

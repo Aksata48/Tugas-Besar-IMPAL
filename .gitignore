@@ -49,3 +49,7 @@ prisma/*.db-journal
 
 # Folder Upload Foto Lokal
 /public/uploads
+
+# Database lokal
+dev.db
+dev.db-journal

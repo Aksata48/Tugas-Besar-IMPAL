@@ -1,36 +1,65 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { email, password, role } = await request.json();
+    const body = await req.json();
+    const { email, password } = body;
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return NextResponse.json({ message: "Email tidak terdaftar" }, { status: 401 });
-
-    if (user.role !== role) {
-      const roleText = user.role === "USER" ? "Pengguna Biasa" : "Pemilik Tempat";
-      return NextResponse.json({ message: `Akses ditolak. Akun ini terdaftar sebagai ${roleText}` }, { status: 403 });
+    // 1. Validasi Input Kosong (Mencegah submit jika kosong)
+    if (!email || !password) {
+      return NextResponse.json({ message: "Email dan Password tidak boleh kosong!" }, { status: 400 });
     }
 
-    // Cek password (user Google mungkin tidak punya password)
-    if (!user.password) {
-      return NextResponse.json({ message: "Akun ini terdaftar via Google. Silakan masuk menggunakan Google." }, { status: 401 });
+    // 2. Batasan Panjang Ekstrim (Pencegahan Overload/Buffer)
+    if (email.length > 50 || password.length > 32) {
+      return NextResponse.json({ message: "Input melebihi batas karakter yang diizinkan." }, { status: 400 });
     }
 
+    // 3. Validasi Format Email Ketat (Hanya Provider Tertentu)
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|yahoo\.co\.id|outlook\.com|hotmail\.com|icloud\.com)$/i;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { message: "Format email tidak valid. Gunakan provider resmi seperti gmail atau yahoo." },
+        { status: 400 }
+      );
+    }
+
+    // 4. Cari User di Database (Skenario Negative Testing)
+    const user = await prisma.user.findUnique({
+      where: { email: email }
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { message: "Akun tidak ditemukan. Email belum terdaftar." },
+        { status: 404 }
+      );
+    }
+
+    // 5. Cek Kesesuaian Password
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) return NextResponse.json({ message: "Password salah" }, { status: 401 });
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { message: "Password yang Anda masukkan salah." },
+        { status: 401 }
+      );
+    }
 
-    // Set Cookie (Wajib await)
-    const cookieStore = await cookies();
-    cookieStore.set('user_role', user.role, { path: '/' });
-
+    // 6. Hapus field password demi keamanan sebelum dikirim ke client
     const { password: _, ...userWithoutPassword } = user;
-    return NextResponse.json({ message: "Login Berhasil", user: userWithoutPassword }, { status: 200 });
-  } catch (error) {
-    console.error("Login Error Asli:", error);
-    return NextResponse.json({ message: "Terjadi kesalahan server" }, { status: 500 });
+
+    return NextResponse.json(
+      { message: "Login berhasil!", user: userWithoutPassword },
+      { status: 200 }
+    );
+
+  } catch (error: any) {
+    console.error("Login API Error:", error);
+    return NextResponse.json(
+      { message: "Terjadi kesalahan pada server. Silakan coba lagi." },
+      { status: 500 }
+    );
   }
 }

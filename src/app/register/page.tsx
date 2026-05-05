@@ -7,7 +7,7 @@ import { GoogleLogin } from "@react-oauth/google";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2>(1); // Step 1: Pilih Role, Step 2: Form
+  const [step, setStep] = useState<1 | 2>(1);
   const [role, setRole] = useState<"USER" | "OWNER">("USER");
   const [formData, setFormData] = useState({ username: "", email: "", password: "" });
   const [err, setErr] = useState({ username: "", email: "", password: "", server: "" });
@@ -15,27 +15,43 @@ export default function RegisterPage() {
 
   const validateRealTime = (name: string, value: string) => {
     let errorMsg = "";
-    if (name === "username" && value.length > 50) errorMsg = "Maksimal 50 karakter";
+    
+    if (name === "username") {
+      if (value.length > 0 && !/^[a-zA-Z0-9]+$/.test(value)) {
+        errorMsg = "Hanya boleh huruf dan angka (tanpa spasi/simbol)";
+      }
+    }
+    
     if (name === "email") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value) && value.length > 0) errorMsg = "Format email tidak valid";
+      // Hanya izinkan domain email populer dan valid
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|yahoo\.co\.id|outlook\.com|hotmail\.com|icloud\.com)$/i;
+      if (!emailRegex.test(value) && value.length > 0) {
+        errorMsg = "Gunakan provider valid (contoh: @gmail.com, @yahoo.com)";
+      }
     }
+    
     if (name === "password") {
-      const pwdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-      if (!pwdRegex.test(value) && value.length > 0) errorMsg = "Minimal 8 karakter (huruf & angka)";
+      const pwdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,32}$/;
+      if (!pwdRegex.test(value) && value.length > 0) {
+        errorMsg = "8-32 karakter, wajib kombinasi huruf & angka";
+      }
     }
+    
     setErr(prev => ({ ...prev, [name]: errorMsg }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (name === "username" && value.length > 50) return;
+    // Cegah user mengetik lebih dari batas maksimal secara langsung
+    if (name === "username" && value.length > 20) return;
+    if (name === "email" && value.length > 50) return;
+    if (name === "password" && value.length > 32) return;
+
     setFormData(prev => ({ ...prev, [name]: value }));
     validateRealTime(name, value);
     setErr(prev => ({ ...prev, server: "" }));
   };
 
-  // Register Manual dengan Auto-Login
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (err.email || err.password || err.username) return;
@@ -48,21 +64,16 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
       });
 
-      // Pindahkan pemanggilan data ke atas agar bisa dibaca saat sukses
       const data = await res.json();
 
       if (res.ok) {
-        // PERBAIKAN: Fitur Auto-Login & Smart Redirect
-        localStorage.setItem("user", JSON.stringify(data.user)); // Simpan sesi login
-
+        localStorage.setItem("user", JSON.stringify(data.user));
         if (data.user.role === "OWNER") {
-          router.push("/owner/dashboard"); // Redirect ke Dashboard Pemilik
+          router.push("/owner/dashboard");
         } else {
-          router.push("/"); // Redirect ke Beranda Pengguna
+          router.push("/");
         }
-        
-        // Refresh ringan agar Navbar mendeteksi perubahan status login
-        setTimeout(() => window.location.reload(), 100); 
+        setTimeout(() => window.location.reload(), 100);
       } else {
         setErr(prev => ({ ...prev, server: data.message || "Gagal mendaftar." }));
       }
@@ -73,7 +84,6 @@ export default function RegisterPage() {
     }
   };
 
-  // Register / Login via Google
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setErr(prev => ({ ...prev, server: "" }));
     try {
@@ -143,7 +153,6 @@ export default function RegisterPage() {
 
             {err.server && <p className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm text-center font-medium border border-red-100">{err.server}</p>}
 
-            {/* TOMBOL GOOGLE REGISTER */}
             <div className="flex justify-center mb-6">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
@@ -163,20 +172,47 @@ export default function RegisterPage() {
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Username</label>
-                <input type="text" name="username" required value={formData.username} onChange={handleChange} placeholder="Contoh: ryanmaulana" className={`w-full px-4 py-2.5 bg-gray-50 border rounded-lg focus:bg-white focus:ring-2 outline-none transition ${err.username ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`} />
+                <input 
+                  type="text" 
+                  name="username" 
+                  required 
+                  maxLength={20}
+                  value={formData.username} 
+                  onChange={handleChange} 
+                  placeholder="Contoh: ryanmaulana (maks 20)" 
+                  className={`w-full px-4 py-2.5 bg-gray-50 border rounded-lg focus:bg-white focus:ring-2 outline-none transition ${err.username ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`} 
+                />
                 {err.username && <p className="text-red-500 text-xs mt-1 font-medium">{err.username}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Email Aktif</label>
-                <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="email@contoh.com" className={`w-full px-4 py-2.5 bg-gray-50 border rounded-lg focus:bg-white focus:ring-2 outline-none transition ${err.email ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`} />
+                <input 
+                  type="email" 
+                  name="email" 
+                  required 
+                  maxLength={50}
+                  value={formData.email} 
+                  onChange={handleChange} 
+                  placeholder="email@gmail.com" 
+                  className={`w-full px-4 py-2.5 bg-gray-50 border rounded-lg focus:bg-white focus:ring-2 outline-none transition ${err.email ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`} 
+                />
                 {err.email && <p className="text-red-500 text-xs mt-1 font-medium">{err.email}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-                <input type="password" name="password" required value={formData.password} onChange={handleChange} placeholder="Minimal 8 karakter (huruf & angka)" className={`w-full px-4 py-2.5 bg-gray-50 border rounded-lg focus:bg-white focus:ring-2 outline-none transition ${err.password ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`} />
+                <input 
+                  type="password" 
+                  name="password" 
+                  required 
+                  maxLength={32}
+                  value={formData.password} 
+                  onChange={handleChange} 
+                  placeholder="Minimal 8 karakter (huruf & angka)" 
+                  className={`w-full px-4 py-2.5 bg-gray-50 border rounded-lg focus:bg-white focus:ring-2 outline-none transition ${err.password ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`} 
+                />
                 {err.password && <p className="text-red-500 text-xs mt-1 font-medium">{err.password}</p>}
               </div>
-              <button type="submit" disabled={!!(err.email || err.password || err.username) || isLoading} className={`w-full py-3 rounded-lg font-bold text-white transition mt-2 ${role === "OWNER" ? "bg-orange-600 hover:bg-orange-700" : "bg-blue-600 hover:bg-blue-700"} disabled:bg-gray-400`}>
+              <button type="submit" disabled={!!(err.email || err.password || err.username) || isLoading || !formData.username || !formData.email || !formData.password} className={`w-full py-3 rounded-lg font-bold text-white transition mt-2 ${role === "OWNER" ? "bg-orange-600 hover:bg-orange-700" : "bg-blue-600 hover:bg-blue-700"} disabled:bg-gray-400 disabled:cursor-not-allowed`}>
                 {isLoading ? "Memproses..." : "Buat Akun Sekarang"}
               </button>
             </form>

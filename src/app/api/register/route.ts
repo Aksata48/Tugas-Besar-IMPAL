@@ -5,36 +5,39 @@ import bcrypt from "bcryptjs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // PERBAIKAN: Tangkap data 'role' dari request body frontend
     const { username, email, password, role } = body; 
 
-    // 1. Validasi Input Kosong (Mencegah submit data kosong)
+    // 1. Validasi Input Kosong & Batas Panjang Ekstrim (Pencegahan Overload)
     if (!username || !email || !password) {
       return NextResponse.json({ message: "Semua field wajib diisi!" }, { status: 400 });
     }
+    if (username.length > 20 || email.length > 50 || password.length > 32) {
+      return NextResponse.json({ message: "Input melebihi batas karakter yang diizinkan." }, { status: 400 });
+    }
 
-    // 2. PENANGKAL XSS (Sanitasi Username)
-    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    // 2. PENANGKAL XSS & SIMBOL (Hanya Huruf dan Angka)
+    const usernameRegex = /^[a-zA-Z0-9]{3,20}$/;
     if (!usernameRegex.test(username)) {
       return NextResponse.json(
-        { message: "Username hanya boleh berisi huruf, angka, dan garis bawah (_), tanpa spasi atau simbol HTML." },
+        { message: "Username hanya boleh berisi huruf dan angka tanpa spasi atau simbol." },
         { status: 400 }
       );
     }
 
-    // 3. Validasi Panjang Password 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { message: "Password terlalu pendek, minimal harus 8 karakter." },
-        { status: 400 }
-      );
-    }
-
-    // 4. Validasi Format Email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // 3. Validasi Format Email Ketat (Hanya Provider Tertentu)
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|yahoo\.co\.id|outlook\.com|hotmail\.com|icloud\.com)$/i;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { message: "Format email tidak valid." },
+        { message: "Format email tidak valid. Gunakan provider seperti gmail, yahoo, atau outlook." },
+        { status: 400 }
+      );
+    }
+
+    // 4. Validasi Panjang & Kekuatan Password
+    const pwdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,32}$/;
+    if (!pwdRegex.test(password)) {
+      return NextResponse.json(
+        { message: "Password harus 8-32 karakter dan mengandung kombinasi huruf serta angka." },
         { status: 400 }
       );
     }
@@ -51,26 +54,22 @@ export async function POST(req: Request) {
       );
     }
 
-    // 6. Hash Password untuk Keamanan Database
+    // 6. Hash Password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ==========================================
-    // PERBAIKAN ROLE: Pastikan role yang masuk valid
-    // Jika frontend mengirim "OWNER", jadikan OWNER. Jika tidak/kosong, jadikan "USER".
-    // ==========================================
+    // 7. Simpan Data
     const finalRole = role === "OWNER" ? "OWNER" : "USER";
 
-    // 7. Simpan Data User Baru ke Database beserta Role-nya
     const newUser = await prisma.user.create({
       data: {
         username,
         email,
         password: hashedPassword,
-        role: finalRole, // ROLE DITAMBAHKAN DI SINI
+        role: finalRole,
       }
     });
 
-    // 8. Hapus field password dari response demi keamanan
+    // 8. Hapus field password dari response
     const { password: _, ...userWithoutPassword } = newUser;
 
     return NextResponse.json(
