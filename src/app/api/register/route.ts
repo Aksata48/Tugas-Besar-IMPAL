@@ -5,7 +5,8 @@ import bcrypt from "bcryptjs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { username, email, password } = body;
+    // PERBAIKAN: Tangkap data 'role' dari request body frontend
+    const { username, email, password, role } = body; 
 
     // 1. Validasi Input Kosong (Mencegah submit data kosong)
     if (!username || !email || !password) {
@@ -13,7 +14,6 @@ export async function POST(req: Request) {
     }
 
     // 2. PENANGKAL XSS (Sanitasi Username)
-    // Aturan: Hanya boleh huruf, angka, dan garis bawah (_). Minimal 3, maksimal 20 karakter.
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
     if (!usernameRegex.test(username)) {
       return NextResponse.json(
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Validasi Panjang Password (Skenario Negative Testing)
+    // 3. Validasi Panjang Password 
     if (password.length < 8) {
       return NextResponse.json(
         { message: "Password terlalu pendek, minimal harus 8 karakter." },
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 5. Cek Email Duplikat (Mencegah email yang sama mendaftar dua kali)
+    // 5. Cek Email Duplikat 
     const existingUser = await prisma.user.findUnique({
       where: { email: email }
     });
@@ -54,19 +54,23 @@ export async function POST(req: Request) {
     // 6. Hash Password untuk Keamanan Database
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 7. Simpan Data User Baru ke Database
+    // ==========================================
+    // PERBAIKAN ROLE: Pastikan role yang masuk valid
+    // Jika frontend mengirim "OWNER", jadikan OWNER. Jika tidak/kosong, jadikan "USER".
+    // ==========================================
+    const finalRole = role === "OWNER" ? "OWNER" : "USER";
+
+    // 7. Simpan Data User Baru ke Database beserta Role-nya
     const newUser = await prisma.user.create({
       data: {
         username,
         email,
         password: hashedPassword,
-        // Jika schema Anda mengatur role default "USER", Prisma akan otomatis mengisinya.
-        // Jika perlu diisi manual, buka komentar di bawah:
-        // role: "USER"
+        role: finalRole, // ROLE DITAMBAHKAN DI SINI
       }
     });
 
-    // 8. Hapus field password dari response demi keamanan (jangan pernah kirim password kembali ke client)
+    // 8. Hapus field password dari response demi keamanan
     const { password: _, ...userWithoutPassword } = newUser;
 
     return NextResponse.json(

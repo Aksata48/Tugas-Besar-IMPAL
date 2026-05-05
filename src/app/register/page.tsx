@@ -35,7 +35,7 @@ export default function RegisterPage() {
     setErr(prev => ({ ...prev, server: "" }));
   };
 
-  // Register Manual
+  // Register Manual dengan Auto-Login
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (err.email || err.password || err.username) return;
@@ -48,10 +48,22 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
       });
 
+      // Pindahkan pemanggilan data ke atas agar bisa dibaca saat sukses
+      const data = await res.json();
+
       if (res.ok) {
-        router.push("/login");
+        // PERBAIKAN: Fitur Auto-Login & Smart Redirect
+        localStorage.setItem("user", JSON.stringify(data.user)); // Simpan sesi login
+
+        if (data.user.role === "OWNER") {
+          router.push("/owner/dashboard"); // Redirect ke Dashboard Pemilik
+        } else {
+          router.push("/"); // Redirect ke Beranda Pengguna
+        }
+        
+        // Refresh ringan agar Navbar mendeteksi perubahan status login
+        setTimeout(() => window.location.reload(), 100); 
       } else {
-        const data = await res.json();
         setErr(prev => ({ ...prev, server: data.message || "Gagal mendaftar." }));
       }
     } catch (error) {
