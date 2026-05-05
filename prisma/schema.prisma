@@ -20,6 +20,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   favorit Favorit[]
+  booking Booking[]
 }
 
 model Kampus {
@@ -63,6 +64,8 @@ model Tempat {
   kategori  TempatKategori[]  //
   favorit   Favorit[]         //
   places    Place[]           //
+
+  booking   Booking[]
 }
 
 model TempatKategori {
@@ -106,4 +109,22 @@ model Place {
   kampus    Kampus? @relation(fields: [id_kampus], references: [id_kampus])
   tempatId  String
   tempat    Tempat @relation(fields: [tempatId], references: [id_tempat])
+}
+
+model Booking {
+  id        String   @id @default(cuid())
+  tanggal   DateTime
+  jam       String
+  nama      String
+  nomor     String
+
+  // relasi ke tempat
+  tempatId  String
+  tempat    Tempat  @relation(fields: [tempatId], references: [id_tempat], onDelete: Cascade)
+
+  // opsional relasi ke user (kalau login)
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }

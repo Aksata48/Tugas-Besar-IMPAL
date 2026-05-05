@@ -4,6 +4,7 @@ async function main() {
   console.log('Memulai proses seeding dengan dukungan waktu real-time...');
 
   // 1. BERSIHKAN DATA LAMA
+  await prisma.booking.deleteMany({}); // ✅ penting ditambah
   await prisma.place.deleteMany({}); 
   await prisma.tempatFasilitas.deleteMany({});
   await prisma.tempatKategori.deleteMany({});
@@ -36,7 +37,7 @@ async function main() {
   const fasSmoking = await prisma.fasilitas.create({ data: { id_fasilitas: "FAS-4", nama_fasilitas: "Area Smoking" } });
   const fasMushola = await prisma.fasilitas.create({ data: { id_fasilitas: "FAS-5", nama_fasilitas: "Mushola Bersih" } });
 
-  // 5. DATA TEMPAT DENGAN PISAHAN WAKTU BUKA & TUTUP
+  // 5. DATA TEMPAT
   const dataTempat = [
     {
       id: "TMP-001",
@@ -77,71 +78,11 @@ async function main() {
       kategori: katRestoran.id_kategori,
       fasilitas: [fasAC.id_fasilitas],
       rating: 4.5, review: "Sushi murah tapi enak", voucher: "SUSHI5"
-    },
-    {
-      id: "TMP-005",
-      nama: "Kopi Anjis Buah Batu",
-      alamat: "Jl. Buah Batu No. 132, Bandung",
-      w_buka: "07:00", w_tutup: "23:00", text_buka: "07:00 - 23:00",
-      harga: "Rp 20.000 - Rp 45.000",
-      kategori: katKafe.id_kategori,
-      fasilitas: [fasWifi.id_fasilitas, fasColokan.id_fasilitas, fasSmoking.id_fasilitas],
-      rating: 4.3, review: "Roti bakarnya mantap", voucher: null
-    },
-    {
-      id: "TMP-006",
-      nama: "Sejiwa Coffee",
-      alamat: "Jl. Progo No. 15, Citarum, Bandung",
-      w_buka: "07:00", w_tutup: "22:00", text_buka: "07:00 - 22:00",
-      harga: "Rp 35.000 - Rp 100.000",
-      kategori: katKafe.id_kategori,
-      fasilitas: [fasWifi.id_fasilitas, fasColokan.id_fasilitas, fasAC.id_fasilitas, fasMushola.id_fasilitas],
-      rating: 4.7, review: "Kopi kualitas premium", voucher: "COFFEEBEANS"
-    },
-    {
-      id: "TMP-007",
-      nama: "Shinju Ramen",
-      alamat: "Jl. Lengkong Kecil, Bandung",
-      w_buka: "11:00", w_tutup: "22:00", text_buka: "11:00 - 22:00",
-      harga: "Rp 30.000 - Rp 70.000",
-      kategori: katRestoran.id_kategori,
-      fasilitas: [fasAC.id_fasilitas, fasWifi.id_fasilitas],
-      rating: 4.4, review: "Kuah ramennya kental gurih", voucher: "RAMEN10"
-    },
-    {
-      id: "TMP-008",
-      nama: "Eduplex Coworking Space",
-      alamat: "Jl. Ir. H. Juanda No. 84, Dago",
-      w_buka: "00:00", w_tutup: "23:59", text_buka: "24 Jam",
-      harga: "Rp 50.000 / Hari",
-      kategori: katWorkspace.id_kategori,
-      fasilitas: [fasWifi.id_fasilitas, fasColokan.id_fasilitas, fasAC.id_fasilitas, fasSmoking.id_fasilitas, fasMushola.id_fasilitas],
-      rating: 4.6, review: "Cocok buat begadang ngerjain tugas", voucher: "EDUPASS"
-    },
-    {
-      id: "TMP-009",
-      nama: "Warkop Gemboel",
-      alamat: "PGA, Bojongsoang",
-      w_buka: "18:00", w_tutup: "04:00", text_buka: "18:00 - 04:00",
-      harga: "Rp 10.000 - Rp 25.000",
-      kategori: katWarkop.id_kategori,
-      fasilitas: [fasWifi.id_fasilitas, fasSmoking.id_fasilitas, fasColokan.id_fasilitas],
-      rating: 4.1, review: "Murah meriah", voucher: null
-    },
-    {
-      id: "TMP-010",
-      nama: "Sydwic",
-      alamat: "Jl. Cilaki No. 63, Bandung",
-      w_buka: "08:00", w_tutup: "22:00", text_buka: "08:00 - 22:00",
-      harga: "Rp 30.000 - Rp 80.000",
-      kategori: katKafe.id_kategori,
-      fasilitas: [fasWifi.id_fasilitas, fasAC.id_fasilitas, fasSmoking.id_fasilitas],
-      rating: 4.6, review: "Interior sangat estetik", voucher: "SYDWIC5"
     }
   ];
 
+  // INSERT TEMPAT + PLACE
   for (const item of dataTempat) {
-    // Insert ke model Tempat (Sekarang punya info waktu_buka & waktu_tutup)
     await prisma.tempat.create({
       data: {
         id_tempat: item.id,
@@ -153,19 +94,16 @@ async function main() {
         kisaran_harga: item.harga,
         id_kampus: kampusTelU.id_kampus,
         kategori: {
-          create: {
-            id_kategori: item.kategori
-          }
+          create: { id_kategori: item.kategori }
         },
         fasilitas: {
-          create: item.fasilitas.map((id_fas) => ({
-            id_fasilitas: id_fas
+          create: item.fasilitas.map((id) => ({
+            id_fasilitas: id
           }))
         }
       }
     });
 
-    // Insert ke model Place (Ulasan & Voucher)
     await prisma.place.create({
       data: {
         name: item.nama,
@@ -180,15 +118,44 @@ async function main() {
     console.log(`Berhasil insert: ${item.nama}`);
   }
 
+  // 6. SEED BOOKING 
+  const semuaTempat = await prisma.tempat.findMany();
+  const user = await prisma.user.findFirst();
+
+  if (semuaTempat.length > 0) {
+    await prisma.booking.createMany({
+      data: [
+        {
+          tanggal: new Date(),
+          jam: "10:00",
+          nama: "Putri",
+          nomor: "081234567890",
+          tempatId: semuaTempat[0].id_tempat,
+          userId: user?.id || null,
+        },
+        {
+          tanggal: new Date(),
+          jam: "14:00",
+          nama: "Budi",
+          nomor: "089876543210",
+          tempatId: semuaTempat[0].id_tempat,
+          userId: user?.id || null,
+        },
+      ],
+    });
+
+    console.log("Seed booking berhasil!");
+  }
+
   console.log('Seeding selesai! Database siap digunakan.');
 }
 
 main()
   .then(async () => {
-    await prisma.$disconnect()
+    await prisma.$disconnect();
   })
   .catch(async (e) => {
-    console.error(e)
-    await prisma.$disconnect()
-    process.exit(1)
-  })
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

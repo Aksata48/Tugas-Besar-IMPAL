@@ -167,8 +167,17 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
 
         {/* Kolom Kanan: Sidebar Aksi */}
         <div className="space-y-6">
-          <div className="sticky top-24">
+          <div className="sticky top-24 space-y-4">
+            
             <FavoriteActionCard tempatId={id} />
+
+            <Link
+              href="/booking"
+              className="block w-full bg-green-600 hover:bg-green-700 text-white text-center py-3 rounded-2xl font-bold shadow-sm transition"
+            >
+              Booking Tempat
+            </Link>
+
           </div>
         </div>
 
