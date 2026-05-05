@@ -64,8 +64,8 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
             
             {/* PERBAIKAN: Menggunakan jam_buka dan fallback string agar .split() tidak error */}
             <StatusOperasional 
-              buka={tempat.jam_buka || "00:00"} 
-              tutup={(tempat as any).jam_tutup || "23:59"} 
+              buka={tempat.waktu_buka} 
+              tutup={tempat.waktu_tutup} 
             />
 
             <div className="flex items-center gap-1 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold shadow-lg">
