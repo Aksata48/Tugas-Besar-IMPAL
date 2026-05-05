@@ -4,14 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2, MessageSquare, Ticket } from "lucide-react";
 import FavoriteActionCard from "./FavoriteActionCard";
-// 🔥 PERBAIKAN TYPO: Sesuai sidebar image_098001.png nama filenya 'reviewfrom'
-// Dan lokasinya kemungkinan besar di folder yang sama atau sesuai alias @/app
 import ReviewForm from "@/app/detailtempat/reviewfrom"; 
+import StatusOperasional from "@/app/detailtempat/statusOperasional"; 
 
 // Server Component: Sekarang params harus di-await sebelum dipakai
 export default async function DetailTempatPage({ params }: { params: Promise<{ id: string }> }) {
   
-  // 🔥 PERBAIKAN UTAMA: Harus di-await karena params sekarang adalah Promise di Next.js terbaru
+  // PERBAIKAN UTAMA: Harus di-await karena params sekarang adalah Promise di Next.js terbaru
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
@@ -21,24 +20,19 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
     include: {
       kampus: true,
       fasilitas: {
-        // 🔥 PERBAIKAN: Karena Many-to-Many, harus include model fasilitas di dalamnya
         include: { fasilitas: true },
       },
       kategori: {
         include: { kategori: true },
       },
-      // --- TAMBAHAN: Ambil data dari model place ---
       places: true, 
     },
   });
 
-  // Jika data tidak ditemukan di database, lemparkan ke halaman 404
   if (!tempat) {
     notFound();
   }
 
-  // --- PERBAIKAN ERROR TYPESCRIPT ---
-  // Gunakan type casting 'as any' agar TS tidak error jika generator belum update
   const reviews = (tempat as any).places || [];
   const hasReviews = reviews.length > 0;
   const displayRating = hasReviews 
@@ -60,7 +54,6 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
         />
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
         
-        {/* Tombol Kembali & Info Singkat di atas Gambar */}
         <div className="absolute bottom-0 w-full p-8 max-w-5xl mx-auto left-0 right-0">
           <Link href="/" className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6 transition font-medium">
             <ArrowLeft size={20} /> Kembali ke Beranda
@@ -69,6 +62,10 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
             <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
               {tempat.kategori[0]?.kategori.nama_kategori || 'Nongki'}
             </span>
+            
+            {/* 2. TAMBAHKAN KOMPONEN STATUS DI SINI (Dekat Badge Kategori) */}
+            <StatusOperasional buka={tempat.waktu_buka} tutup={tempat.waktu_tutup} />
+
             <div className="flex items-center gap-1 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold shadow-lg">
               <Star size={16} className="fill-yellow-900" /> {displayRating}
             </div>
@@ -82,8 +79,6 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
 
       {/* KONTEN UTAMA */}
       <div className="max-w-5xl mx-auto px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        {/* Kolom Kiri: Detail Utama */}
         <div className="md:col-span-2 space-y-8">
           
           {/* Card Info Dasar */}
@@ -92,7 +87,10 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               <div className="bg-blue-50 p-3 rounded-xl text-blue-600"><Clock size={24} /></div>
               <div>
                 <p className="text-[10px] text-gray-400 font-black uppercase tracking-wider mb-1">Jam Operasional</p>
-                <p className="text-lg font-extrabold text-gray-800">{tempat.jam_buka}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-extrabold text-gray-800">{tempat.jam_buka}</p>
+                  {/* 3. ATAU BISA JUGA DITAMBAHKAN DI SINI (Dalam card jam) */}
+                </div>
               </div>
             </div>
             <div className="hidden sm:block w-px bg-gray-100"></div>
@@ -121,7 +119,6 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
           <div>
             <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Fasilitas Tersedia</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {/* 🔥 PERBAIKAN: Mapping disesuaikan dengan struktur include Prisma */}
               {tempat.fasilitas.map((item: any) => (
                 <div key={item.fasilitas.id_fasilitas} className="flex items-center gap-2 text-gray-700 bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                   <CheckCircle2 size={18} className="text-blue-500 shrink-0" />
@@ -131,7 +128,7 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
             </div>
           </div>
 
-          {/* --- TAMBAHAN: Bagian Ulasan/Review --- */}
+          {/* Ulasan/Review */}
           <div>
             <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
               <MessageSquare size={20} /> Ulasan & Rating
@@ -159,12 +156,11 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               )}
             </div>
 
-            {/* --- FORM TULIS ULASAN --- */}
+            {/* FORM TULIS ULASAN */}
             <div className="mt-8">
               <ReviewForm tempatId={id} />
             </div>
           </div>
-          {/* --- AKHIR TAMBAHAN --- */}
           
         </div>
 
