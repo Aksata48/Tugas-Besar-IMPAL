@@ -25,7 +25,6 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
       kategori: {
         include: { kategori: true },
       },
-      places: true, 
     },
   });
 
@@ -63,8 +62,11 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               {tempat.kategori[0]?.kategori.nama_kategori || 'Nongki'}
             </span>
             
-            {/* 2. TAMBAHKAN KOMPONEN STATUS DI SINI (Dekat Badge Kategori) */}
-            <StatusOperasional buka={tempat.waktu_buka} tutup={tempat.waktu_tutup} />
+            {/* PERBAIKAN: Menggunakan jam_buka dan fallback string agar .split() tidak error */}
+            <StatusOperasional 
+              buka={tempat.jam_buka || "00:00"} 
+              tutup={(tempat as any).jam_tutup || "23:59"} 
+            />
 
             <div className="flex items-center gap-1 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold shadow-lg">
               <Star size={16} className="fill-yellow-900" /> {displayRating}
@@ -89,7 +91,6 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
                 <p className="text-[10px] text-gray-400 font-black uppercase tracking-wider mb-1">Jam Operasional</p>
                 <div className="flex items-center gap-2">
                   <p className="text-lg font-extrabold text-gray-800">{tempat.jam_buka}</p>
-                  {/* 3. ATAU BISA JUGA DITAMBAHKAN DI SINI (Dalam card jam) */}
                 </div>
               </div>
             </div>
