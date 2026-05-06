@@ -7,17 +7,17 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { email, password } = body;
 
-    // 1. Validasi Input Kosong (Mencegah submit jika kosong)
+    // 1. Validasi Input Kosong
     if (!email || !password) {
       return NextResponse.json({ message: "Email dan Password tidak boleh kosong!" }, { status: 400 });
     }
 
-    // 2. Batasan Panjang Ekstrim (Pencegahan Overload/Buffer)
+    // 2. Batasan Panjang Ekstrim
     if (email.length > 50 || password.length > 32) {
       return NextResponse.json({ message: "Input melebihi batas karakter yang diizinkan." }, { status: 400 });
     }
 
-    // 3. Validasi Format Email Ketat (Hanya Provider Tertentu)
+    // 3. Validasi Format Email
     const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|yahoo\.co\.id|outlook\.com|hotmail\.com|icloud\.com)$/i;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Cari User di Database (Skenario Negative Testing)
+    // 4. Cari User di Database
     const user = await prisma.user.findUnique({
       where: { email: email }
     });
@@ -38,7 +38,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // 5. Cek Kesesuaian Password
+    // 5. ✅ FIX: Handle akun yang didaftarkan via Google (tidak punya password)
+    if (!user.password) {
+      return NextResponse.json(
+        { message: "Akun ini terdaftar via Google. Silakan login menggunakan tombol Google." },
+        { status: 400 }
+      );
+    }
+
+    // 6. Cek Kesesuaian Password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -47,7 +55,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 6. Hapus field password demi keamanan sebelum dikirim ke client
+    // 7. Hapus field password sebelum dikirim ke client
     const { password: _, ...userWithoutPassword } = user;
 
     return NextResponse.json(
