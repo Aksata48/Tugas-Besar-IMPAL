@@ -4,8 +4,8 @@ async function main() {
   console.log('Memulai proses seeding dengan dukungan waktu real-time...');
 
   // 1. BERSIHKAN DATA LAMA
-  await prisma.booking.deleteMany({}); // ✅ penting ditambah
-  await prisma.place.deleteMany({}); 
+  await prisma.booking.deleteMany({});
+  await prisma.place.deleteMany({});
   await prisma.tempatFasilitas.deleteMany({});
   await prisma.tempatKategori.deleteMany({});
   await prisma.tempat.deleteMany({});
@@ -84,25 +84,25 @@ async function main() {
   // INSERT TEMPAT + PLACE
   for (const item of dataTempat) {
     await prisma.tempat.create({
-      data: {
-        id_tempat: item.id,
-        nama_tempat: item.nama,
-        alamat: item.alamat,
-        waktu_buka: item.w_buka,
-        waktu_tutup: item.w_tutup,
-        jam_buka: item.text_buka,
-        kisaran_harga: item.harga,
-        id_kampus: kampusTelU.id_kampus,
-        kategori: {
-          create: { id_kategori: item.kategori }
-        },
-        fasilitas: {
-          create: item.fasilitas.map((id) => ({
-            id_fasilitas: id
-          }))
-        }
-      }
-    });
+  data: {
+    id_tempat: item.id,
+    nama_tempat: item.nama,
+    alamat: item.alamat,
+    jam_buka: item.text_buka,
+    waktu_buka: item.w_buka,
+    waktu_tutup: item.w_tutup,
+    kisaran_harga: item.harga,
+    id_kampus: kampusTelU.id_kampus,
+    kategori: {
+      create: { id_kategori: item.kategori }
+    },
+    fasilitas: {
+      create: item.fasilitas.map((id) => ({
+        id_fasilitas: id
+      }))
+    }
+  }
+});
 
     await prisma.place.create({
       data: {
@@ -120,7 +120,6 @@ async function main() {
 
   // 6. SEED BOOKING 
   const semuaTempat = await prisma.tempat.findMany();
-  const user = await prisma.user.findFirst();
 
   if (semuaTempat.length > 0) {
     await prisma.booking.createMany({
@@ -131,7 +130,6 @@ async function main() {
           nama: "Putri",
           nomor: "081234567890",
           tempatId: semuaTempat[0].id_tempat,
-          userId: user?.id || null,
         },
         {
           tanggal: new Date(),
@@ -139,7 +137,6 @@ async function main() {
           nama: "Budi",
           nomor: "089876543210",
           tempatId: semuaTempat[0].id_tempat,
-          userId: user?.id || null,
         },
       ],
     });
