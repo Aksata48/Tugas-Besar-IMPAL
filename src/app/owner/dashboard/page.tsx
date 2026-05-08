@@ -3,8 +3,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Store, PlusCircle, MapPin, Edit, Trash2, LogOut,
-  X, Clock, Phone, CalendarCheck, CheckCircle, XCircle, AlertCircle, Wallet
+  X, Clock, Phone, CalendarCheck, CheckCircle, XCircle, AlertCircle, Wallet, ArrowLeft
 } from "lucide-react";
+
+// ===== 1. IMPORT RECHARTS UNTUK GRAFIK =====
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} from 'recharts';
 
 // ===== TIPE DATA =====
 interface Tempat {
@@ -13,8 +18,8 @@ interface Tempat {
   alamat: string;
   jam_buka: string;
   kisaran_harga: string;
-  jumlah_meja?: number;
-  jumlah_lantai?: number;
+  jumlah_meja?: string | number;
+  jumlah_lantai?: string | number;
 }
 
 interface Booking {
@@ -32,14 +37,26 @@ const FORM_KOSONG = {
   alamat: "",
   jam_buka: "",
   kisaran_harga: "",
-  jumlah_meja: "",
-  jumlah_lantai: "",
+  jumlah_meja: "" as string | number,
+  jumlah_lantai: "" as string | number,
 };
+
+// ===== 2. CONTOH DATA HARIAN UNTUK GRAFIK =====
+const dataKeuangan = [
+  { tgl: '01 Mei', pemasukan: 400000, pengeluaran: 200000, booking: 5 },
+  { tgl: '02 Mei', pemasukan: 300000, pengeluaran: 250000, booking: 3 },
+  { tgl: '03 Mei', pemasukan: 600000, pengeluaran: 300000, booking: 8 },
+  { tgl: '04 Mei', pemasukan: 800000, pengeluaran: 400000, booking: 12 },
+  { tgl: '05 Mei', pemasukan: 500000, pengeluaran: 200000, booking: 7 },
+];
 
 export default function OwnerDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [activeNav, setActiveNav] = useState<"daftar" | "tambah" | "booking">("daftar");
+  
+  // State Navigasi & Pilihan Tempat untuk Grafik
+  const [activeNav, setActiveNav] = useState<"daftar" | "tambah" | "booking" | "statistik">("daftar");
+  const [selectedTempatForStats, setSelectedTempatForStats] = useState<Tempat | null>(null);
 
   // State Tempat
   const [tempatList, setTempatList] = useState<Tempat[]>([]);
@@ -72,24 +89,13 @@ export default function OwnerDashboard() {
     setLoadingTempat(true);
     try {
       const response = await fetch('/api/tempat');
-
-      if (!response.ok) {
-        console.error(`Server merespons dengan status: ${response.status}`);
-        return; 
-      }
-
+      if (!response.ok) return;
       const text = await response.text();
-      if (!text) {
-        console.warn("Respons kosong dari server.");
-        return;
-      }
-
+      if (!text) return;
       const data = JSON.parse(text);
-      if (data.success) {
-        setTempatList(data.tempat);
-      }
+      if (data.success) setTempatList(data.tempat);
     } catch (error) {
-      console.error("Error saat mengambil data tempat:", error);
+      console.error("Error fetching tempat:", error);
     } finally {
       setLoadingTempat(false);
     }
@@ -115,21 +121,19 @@ export default function OwnerDashboard() {
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target;
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: name === "jumlah_meja" || name === "jumlah_lantai"
+          ? value === "" ? "" : Number(value)
+          : value,
+    }));
+  };
 
-  setForm((prev) => ({
-    ...prev,
-    [name]:
-      name === "jumlah_meja" || name === "jumlah_lantai"
-        ? value === "" ? "" : Number(value)
-        : value,
-  }));
-};
   // TAMBAH
   const bukaModalTambah = () => {
     setForm(FORM_KOSONG);
     setModalTambah(true);
-    setActiveNav("tambah");
   };
 
   const handleTambah = async () => {
@@ -165,10 +169,12 @@ export default function OwnerDashboard() {
       jam_buka: tempat.jam_buka,
       kisaran_harga: tempat.kisaran_harga,
       jumlah_meja: tempat.jumlah_meja || "",
-      jumlah_lantai: tempat.jumlah_lantai || "",
+      jumlah_lantai: finalLantai(tempat.jumlah_lantai),
     });
     setModalEdit(true);
   };
+
+  const finalLantai = (val: any) => val || "";
 
   const handleEdit = async () => {
     if (!form.nama_tempat || !form.alamat) return alert("Nama dan alamat wajib diisi!");
@@ -196,11 +202,6 @@ export default function OwnerDashboard() {
   };
 
   // HAPUS
-  const bukaModalHapus = (tempat: Tempat) => {
-    setTempatDipilih(tempat);
-    setModalHapus(true);
-  };
-
   const handleHapus = async () => {
     setLoadingSubmit(true);
     try {
@@ -262,14 +263,14 @@ export default function OwnerDashboard() {
 
         <nav className="flex flex-col gap-2 flex-grow">
           <button
-            onClick={() => { setActiveNav("daftar"); }}
-            className={`flex items-center gap-3 px-4 py-3 font-semibold rounded-lg transition ${activeNav === "daftar" || activeNav === "tambah" ? "bg-orange-50 text-orange-600" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}
+            onClick={() => setActiveNav("daftar")}
+            className={`flex items-center gap-3 px-4 py-3 font-semibold rounded-lg transition ${activeNav === "daftar" ? "bg-orange-50 text-orange-600" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}
           >
             <Store size={20} /> Tempat Saya
           </button>
           <button
             onClick={bukaModalTambah}
-            className={`flex items-center gap-3 px-4 py-3 font-semibold rounded-lg transition ${activeNav === "tambah" ? "bg-orange-50 text-orange-600" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}
+            className="flex items-center gap-3 px-4 py-3 font-semibold rounded-lg text-gray-500 hover:bg-gray-100 transition"
           >
             <PlusCircle size={20} /> Tambah Tempat
           </button>
@@ -283,6 +284,12 @@ export default function OwnerDashboard() {
                 {badgeCount}
               </span>
             )}
+          </button>
+          
+          <button onClick={() => { setSelectedTempatForStats(null); setActiveNav("statistik"); }}
+            className={`flex items-center gap-3 px-4 py-3 font-semibold rounded-lg transition ${activeNav === "statistik" ? "bg-orange-50 text-orange-600" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}
+          >
+            <Wallet size={20} /> Laporan Keuangan
           </button>
         </nav>
 
@@ -301,12 +308,12 @@ export default function OwnerDashboard() {
       <main className="flex-1 p-8">
 
         {/* TAB: DAFTAR TEMPAT */}
-        {(activeNav === "daftar" || activeNav === "tambah") && (
+        {activeNav === "daftar" && (
           <>
             <header className="mb-8">
               <div>
                 <h2 className="text-3xl font-extrabold text-gray-800">Halo, {user.username}! 👋</h2>
-                <p className="text-gray-500 mt-2">Kelola tempat nongkrong yang Anda miliki.</p>
+                <p className="text-gray-500 mt-2">Pilih tempat untuk melihat statistik atau kelola data tempat Anda.</p>
               </div>
             </header>
 
@@ -331,24 +338,49 @@ export default function OwnerDashboard() {
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  {tempatList.map((tempat) => (
-                    <div key={tempat.id_tempat} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:shadow-sm transition">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-800 text-lg">{tempat.nama_tempat}</h4>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                          <span className="flex items-center text-gray-500 text-sm gap-1"><MapPin size={14} /> {tempat.alamat}</span>
-                          {tempat.jam_buka && <span className="flex items-center text-gray-500 text-sm gap-1"><Clock size={14} /> {tempat.jam_buka}</span>}
-                          {tempat.kisaran_harga && <span className="flex items-center text-gray-500 text-sm gap-1"><Wallet size={14} /> {tempat.kisaran_harga}</span>}
-                          {tempat.jumlah_meja && <span className="text-gray-500 text-sm">Meja: {tempat.jumlah_meja}</span>}
-                          {tempat.jumlah_lantai && <span className="text-gray-500 text-sm">Lantai: {tempat.jumlah_lantai}</span>}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 ml-4">
-                        <button onClick={() => bukaModalEdit(tempat)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition" title="Edit"><Edit size={18} /></button>
-                        <button onClick={() => bukaModalHapus(tempat)} className="p-2 text-red-600 hover:bg-red-50 rounded-md transition" title="Hapus"><Trash2 size={18} /></button>
-                      </div>
-                    </div>
-                  ))}
+
+                  // Di dalam loop mapping tempatList:
+{tempatList.map((tempat) => (
+  <div 
+    key={tempat.id_tempat} 
+    // Saat Card diklik: Simpan data tempat & pindah tab ke statistik
+    onClick={() => {
+      setSelectedTempatForStats(tempat);
+      setActiveNav("statistik");
+    }}
+    className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-orange-400 hover:bg-orange-50/50 cursor-pointer transition group bg-white shadow-sm"
+  >
+    <div className="flex-1">
+      <h4 className="font-bold text-gray-800 text-lg group-hover:text-orange-600 transition">
+        {tempat.nama_tempat}
+      </h4>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+        <span className="flex items-center text-gray-500 text-sm gap-1">
+          <MapPin size={14} /> {tempat.alamat}
+        </span>
+        <span className="flex items-center text-gray-500 text-sm gap-1">
+          <Wallet size={14} /> {tempat.kisaran_harga || "Harga belum diatur"}
+        </span>
+      </div>
+    </div>
+
+    {/* Tombol aksi diproteksi e.stopPropagation() agar klik tidak tembus ke card */}
+    <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+      <button 
+        onClick={() => bukaModalEdit(tempat)} 
+        className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition"
+      >
+        <Edit size={18} />
+      </button>
+      <button 
+        onClick={() => { setTempatDipilih(tempat); setModalHapus(true); }} 
+        className="p-2 text-red-600 hover:bg-red-50 rounded-md transition"
+      >
+        <Trash2 size={18} />
+      </button>
+    </div>
+  </div>
+))}
                 </div>
               )}
             </div>
@@ -383,10 +415,7 @@ export default function OwnerDashboard() {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               {loadingBooking ? (
-                <div className="text-center py-16 text-gray-400">
-                  <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                  <p>Memuat data booking...</p>
-                </div>
+                <div className="text-center py-16 text-gray-400 animate-pulse">Memuat data booking...</div>
               ) : bookingFiltered.length === 0 ? (
                 <div className="text-center py-16 text-gray-400">
                   <CalendarCheck size={48} className="mx-auto text-gray-300 mb-4" />
@@ -431,15 +460,74 @@ export default function OwnerDashboard() {
             </div>
           </>
         )}
-      </main>
+
+        {/* TAB: STATISTIK KEUANGAN */}
+        {activeNav === "statistik" && (
+  <>
+    <header className="mb-8">
+      <button 
+        onClick={() => {
+          setSelectedTempatForStats(null);
+          setActiveNav("daftar");
+        }}
+        className="flex items-center gap-2 text-orange-600 font-bold text-sm mb-4 hover:underline transition"
+      >
+        <ArrowLeft size={16} /> Kembali ke Daftar Tempat
+      </button>
+      
+      <h2 className="text-3xl font-extrabold text-gray-800">
+        Laporan: {selectedTempatForStats?.nama_tempat || "Seluruh Tempat"} 📈
+      </h2>
+      {/* Teks yang kamu minta ada di sini */}
+      <p className="text-gray-600 mt-2 font-medium bg-orange-100 inline-block px-3 py-1 rounded-full text-sm">
+        Total Pengeluaran dan Pemasukan Harian
+      </p>
+    </header>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Total Pemasukan</p>
+        <h4 className="text-2xl font-black text-green-600">Rp 2.600.000</h4>
+        <p className="text-[10px] text-gray-400 mt-2 italic">*Data akumulasi harian</p>
+      </div>
+      <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
+        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Total Pengeluaran</p>
+        <h4 className="text-2xl font-black text-red-600">Rp 1.350.000</h4>
+        <p className="text-[10px] text-gray-400 mt-2 italic">*Data akumulasi harian</p>
+      </div>
+    </div>
+
+    {/* Grafik Tetap Ada di Bawahnya */}
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96">
+      <h3 className="text-lg font-bold mb-6 italic text-gray-700">Visual Arus Kas Harian</h3>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={dataKeuangan}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+          <XAxis dataKey="tgl" tick={{fontSize: 12}} />
+          <YAxis tickFormatter={(value) => `Rp${value/1000}k`} tick={{fontSize: 12}} />
+          <Tooltip 
+  formatter={(value: any) => 
+    value ? `Rp ${Number(value).toLocaleString()}` : "Rp 0"
+  }
+  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+/>
+          <Legend />
+          <Line type="monotone" dataKey="pemasukan" name="Pemasukan" stroke="#16a34a" strokeWidth={3} dot={{ r: 4 }} />
+          <Line type="monotone" dataKey="pengeluaran" name="Pengeluaran" stroke="#dc2626" strokeWidth={3} dot={{ r: 4 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  </>
+)}
+</main>
 
       {/* MODAL TAMBAH */}
       {modalTambah && (
-        <ModalWrapper onClose={() => { setModalTambah(false); setActiveNav("daftar"); }}>
-          <ModalHeader title="Tambah Tempat Baru" onClose={() => { setModalTambah(false); setActiveNav("daftar"); }} />
+        <ModalWrapper onClose={() => setModalTambah(false)}>
+          <ModalHeader title="Tambah Tempat Baru" onClose={() => setModalTambah(false)} />
           <FormTempat form={form} onChange={handleFormChange} />
           <div className="flex justify-end gap-3 mt-6">
-            <button onClick={() => { setModalTambah(false); setActiveNav("daftar"); }} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition">Batal</button>
+            <button onClick={() => setModalTambah(false)} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition">Batal</button>
             <button onClick={handleTambah} disabled={loadingSubmit} className="px-5 py-2 rounded-lg bg-orange-600 text-white font-bold hover:bg-orange-700 transition disabled:opacity-60">
               {loadingSubmit ? "Menyimpan..." : "Simpan Tempat"}
             </button>
@@ -470,13 +558,11 @@ export default function OwnerDashboard() {
             </div>
             <h3 className="text-xl font-extrabold text-gray-800 mb-2">Hapus Tempat?</h3>
             <p className="text-gray-500 mb-6">
-              Yakin ingin menghapus <span className="font-bold text-gray-800">"{tempatDipilih?.nama_tempat}"</span>? Tindakan ini tidak bisa dibatalkan.
+              Yakin ingin menghapus <span className="font-bold text-gray-800">"{tempatDipilih?.nama_tempat}"</span>?
             </p>
             <div className="flex justify-center gap-3">
-              <button onClick={() => setModalHapus(false)} className="px-6 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition">Batal</button>
-              <button onClick={handleHapus} disabled={loadingSubmit} className="px-6 py-2 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition disabled:opacity-60">
-                {loadingSubmit ? "Menghapus..." : "Ya, Hapus"}
-              </button>
+              <button onClick={() => setModalHapus(false)} className="px-6 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50">Batal</button>
+              <button onClick={handleHapus} className="px-6 py-2 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700">Ya, Hapus</button>
             </div>
           </div>
         </ModalWrapper>
@@ -507,13 +593,8 @@ function StatusBadge({ status }: { status: string }) {
 
 function ModalWrapper({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
-    <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-        {children}
-      </div>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">{children}</div>
     </div>
   );
 }
@@ -529,40 +610,39 @@ function ModalHeader({ title, onClose }: { title: string; onClose: () => void })
   );
 }
 
-function FormTempat({
-  form,
-  onChange,
-}: {
-  form: typeof FORM_KOSONG;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
-  const inputClass = "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition";
+function FormTempat({ form, onChange }: { form: any; onChange: any }) {
+  const inputClass = "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-400 outline-none transition";
   const labelClass = "block text-sm font-semibold text-gray-700 mb-1";
+
   return (
     <div className="space-y-4">
       <div>
-        <label className={labelClass}>Nama Tempat <span className="text-red-500">*</span></label>
-        <input name="nama_tempat" value={form.nama_tempat} onChange={onChange} placeholder="cth: Warkop Motekar" className={inputClass} />
+        <label className={labelClass}>Nama Tempat *</label>
+        <input name="nama_tempat" value={form.nama_tempat} onChange={onChange} className={inputClass} />
       </div>
       <div>
-        <label className={labelClass}>Alamat <span className="text-red-500">*</span></label>
-        <input name="alamat" value={form.alamat} onChange={onChange} placeholder="cth: Jl. Telekomunikasi No. 1" className={inputClass} />
+        <label className={labelClass}>Alamat *</label>
+        <input name="alamat" value={form.alamat} onChange={onChange} className={inputClass} />
       </div>
-      <div>
-        <label className={labelClass}>Jam Buka</label>
-        <input name="jam_buka" value={form.jam_buka} onChange={onChange} placeholder="cth: 08:00 - 22:00" className={inputClass} />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={labelClass}>Jam Buka</label>
+          <input name="jam_buka" value={form.jam_buka} onChange={onChange} className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass}>Kisaran Harga</label>
+          <input name="kisaran_harga" value={form.kisaran_harga} onChange={onChange} className={inputClass} />
+        </div>
       </div>
-      <div>
-        <label className={labelClass}>Kisaran Harga</label>
-        <input name="kisaran_harga" value={form.kisaran_harga} onChange={onChange} placeholder="cth: Rp 10.000 - Rp 30.000" className={inputClass} />
-      </div>
-      <div>
-        <label className={labelClass}>Jumlah Meja</label>
-        <input name="jumlah_meja" type="number" value={form.jumlah_meja} onChange={onChange} placeholder="cth: 15" className={inputClass} />
-      </div>
-      <div>
-        <label className={labelClass}>Jumlah Lantai</label>
-        <input name="jumlah_lantai" type="number" value={form.jumlah_lantai} onChange={onChange} placeholder="cth: 2" className={inputClass} />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={labelClass}>Jumlah Meja</label>
+          <input name="jumlah_meja" type="number" value={form.jumlah_meja} onChange={onChange} className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass}>Jumlah Lantai</label>
+          <input name="jumlah_lantai" type="number" value={form.jumlah_lantai} onChange={onChange} className={inputClass} />
+        </div>
       </div>
     </div>
   );

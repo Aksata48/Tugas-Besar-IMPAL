@@ -31,13 +31,46 @@ export async function POST(request: Request) {
 
     // MODE LAMA: LOGIN / REGISTER
     const email = payload.email;
-    const name = payload.name || "User Google";
 
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
+      // --- LOGIKA PERBAIKAN USERNAME GOOGLE ---
+      // 1. Ambil nama dari Google, jadikan huruf kecil, hapus spasi & simbol
+      let baseUsername = (payload.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      
+      // 2. Jika nama kosong, ambil dari awalan email
+      if (!baseUsername) {
+        baseUsername = email.split("@")[0].replace(/[^a-z0-9]/g, "");
+      }
+      
+      // 3. Potong maksimal 15 karakter (sisa 5 karakter untuk angka cadangan)
+      baseUsername = baseUsername.substring(0, 15);
+      
+      // 4. Pastikan username benar-benar unik di Database
+      let validUsername = baseUsername;
+      let counter = 1;
+      
+      while (true) {
+        const existingUser = await prisma.user.findFirst({ 
+          where: { username: validUsername } 
+        });
+        
+        if (!existingUser) break; // Jika belum ada yang pakai, hentikan pencarian!
+        
+        // Jika sudah ada yang pakai, tambahkan angka di belakangnya (contoh: ryanmaulana1)
+        validUsername = `${baseUsername}${counter}`;
+        counter++;
+      }
+      // ----------------------------------------
+
       user = await prisma.user.create({
-        data: { username: name, email: email, role: role, google_id: payload.sub }
+        data: { 
+          username: validUsername, 
+          email: email, 
+          role: role, 
+          google_id: payload.sub 
+        }
       });
     } else {
       if (user.role !== role) {

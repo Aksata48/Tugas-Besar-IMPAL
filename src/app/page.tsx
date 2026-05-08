@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import HomeClient from "@/components/HomeClient";
 
-// Fungsi untuk mengambil 10 data tempat dari Database
+// Fungsi untuk mengambil data tempat dari Database
 async function getTempatData() {
   const data = await prisma.tempat.findMany({
     include: {
