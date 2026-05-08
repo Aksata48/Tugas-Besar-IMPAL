@@ -47,6 +47,10 @@ model Tempat {
   id_tempat     String   @id
   nama_tempat   String
   alamat        String
+
+  //buat map
+  latitude      Float    @default(-6.9175) // Default ke Bandung 
+  longitude     Float    @default(107.6191)
   
   // Kolom baru untuk logika status operasional real-time
   waktu_buka    String   // Format "HH:mm" (Contoh: "08:00")

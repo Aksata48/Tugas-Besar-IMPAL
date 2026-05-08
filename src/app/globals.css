@@ -1,1 +1,12 @@
 @import "tailwindcss";
+.leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+/* Biar marker tidak hancur kena reset CSS Tailwind */
+.leaflet-marker-icon {
+  border: none !important;
+  background: none !important;
+}

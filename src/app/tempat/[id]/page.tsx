@@ -6,6 +6,7 @@ import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2, Message
 import FavoriteActionCard from "./FavoriteActionCard";
 import ReviewForm from "@/app/detailtempat/reviewfrom"; 
 import StatusOperasional from "@/app/detailtempat/statusOperasional"; 
+import TempatMap from "@/components/Map";
 
 // Server Component: Sekarang params harus di-await sebelum dipakai
 export default async function DetailTempatPage({ params }: { params: Promise<{ id: string }> }) {
@@ -62,7 +63,6 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               {tempat.kategori[0]?.kategori.nama_kategori || 'Nongki'}
             </span>
             
-            {/* PERBAIKAN: Menggunakan jam_buka dan fallback string agar .split() tidak error */}
             <StatusOperasional 
               buka={tempat.waktu_buka} 
               tutup={tempat.waktu_tutup} 
@@ -116,6 +116,17 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
             </div>
           </div>
 
+          {/* BAGIAN MAPS (Berdasarkan Rekomendasi Desain) */}       
+<div className="mt-8">
+  <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Lokasi</h3>
+  <div className="h-[350px] w-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 relative">
+    <TempatMap 
+      lat={tempat.latitude ?? -6.9175} 
+      lng={tempat.longitude ?? 107.6191} 
+      nama={tempat.nama_tempat} 
+    />
+  </div>
+</div>
           {/* Fasilitas */}
           <div>
             <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Fasilitas Tersedia</h3>
