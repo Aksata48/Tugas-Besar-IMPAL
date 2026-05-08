@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function BookingPage() {
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [nama, setNama] = useState("");
   const [nomor, setNomor] = useState("");
+  const [catatan, setCatatan] = useState("");
+  
+  // State baru untuk notifikasi custom
+  const [showToast, setShowToast] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [bookingSummary, setBookingSummary] = useState<any>(null);
 
@@ -19,44 +25,57 @@ export default function BookingPage() {
   });
 
   const monthNames = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
   ];
 
-  const daysInMonth = new Date(
-    selectedYear,
-    selectedMonth,
-    0
-  ).getDate();
+  const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+  const firstDay = new Date(selectedYear, selectedMonth - 1, 1).getDay();
 
-  const firstDay = new Date(
-    selectedYear,
-    selectedMonth - 1,
-    1
-  ).getDay();
+  // Menghilangkan pesan error otomatis setelah 3 detik
+  useEffect(() => {
+    if (errorMessage || showToast) {
+      const timer = setTimeout(() => {
+        setShowToast(false);
+        setErrorMessage("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showToast, errorMessage]);
 
   const handleBooking = async () => {
+    setErrorMessage(""); // Reset error setiap klik
+
+    if (!selectedDate || !startTime || !endTime || !nama) {
+      setErrorMessage("Harap isi semua data dengan lengkap!");
+      return;
+    }
+
+    const startHour = parseInt(startTime.split(":")[0]);
+    const endHour = parseInt(endTime.split(":")[0]);
+    const durasi = endHour - startHour;
+
+    if (endHour <= startHour) {
+      setErrorMessage("Jam selesai harus setelah jam mulai.");
+      return;
+    }
+
+    if (durasi > 2) {
+      setErrorMessage(`Durasi ${durasi} jam terlalu lama. Maksimal 2 jam!`);
+      return;
+    }
+
     try {
       const response = await fetch("/api/booking", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tanggal: selectedDate,
-          jam: selectedTime,
+          jamMulai: startTime,
+          jamSelesai: endTime,
           nama,
           nomor,
+          catatan,
           tempatId: "TMP-001",
         }),
       });
@@ -64,230 +83,179 @@ export default function BookingPage() {
       const data = await response.json();
 
       if (data.success) {
-
         setBookingSummary({
           tanggal: selectedDate,
-          jam: selectedTime,
+          jamMulai: startTime,
+          jamSelesai: endTime,
           nama,
           nomor,
+          catatan,
         });
 
-        alert("Booking berhasil!");
-
-        setSelectedDate("");
-        setSelectedTime("");
+        setShowToast(true); // Tampilkan notifikasi sukses custom
+        
+        // Reset form
+        setStartTime("");
+        setEndTime("");
         setNama("");
         setNomor("");
-
+        setCatatan("");
       } else {
-        alert("Booking gagal");
+        setErrorMessage(data.message || "Gagal melakukan booking.");
       }
     } catch (error) {
-      console.log(error);
-      alert("Terjadi error");
+      setErrorMessage("Koneksi bermasalah, coba lagi.");
     }
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto">
+    <div className="p-4 max-w-md mx-auto relative min-h-screen">
+      
+      {/* --- CUSTOM NOTIFICATION (TOAST) --- */}
+      {showToast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-72 bg-green-500 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
+          <span className="text-xl">✅</span>
+          <p className="text-sm font-bold">Booking Berhasil Disimpan!</p>
+        </div>
+      )}
 
-      <h1 className="text-2xl font-bold mb-5">
-        Booking Tempat
-      </h1>
+      {/* --- ERROR MESSAGE --- */}
+      {errorMessage && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-200 text-red-700 text-sm rounded-xl flex items-center gap-2">
+          <span>⚠️</span> {errorMessage}
+        </div>
+      )}
+
+      <h1 className="text-2xl font-bold mb-5">Booking Tempat</h1>
 
       {/* Kalender */}
-      <div className="bg-white border rounded-2xl p-4 shadow-sm">
-
-        {/* Header Kalender */}
+      <div className="bg-white border rounded-2xl p-4 shadow-sm mb-6">
         <div className="flex items-center justify-between mb-4 gap-2">
-
-          {/* Bulan */}
           <select
             value={selectedMonth}
-            onChange={(e) =>
-              setSelectedMonth(Number(e.target.value))
-            }
-            className="border rounded-lg px-2 py-1 text-sm"
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="border rounded-lg px-2 py-1 text-sm outline-none bg-gray-50"
           >
             {monthNames.map((month, index) => (
-              <option key={month} value={index + 1}>
-                {month}
-              </option>
+              <option key={month} value={index + 1}>{month}</option>
             ))}
           </select>
 
-          {/* Tahun */}
           <select
             value={selectedYear}
-            onChange={(e) =>
-              setSelectedYear(Number(e.target.value))
-            }
-            className="border rounded-lg px-2 py-1 text-sm"
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="border rounded-lg px-2 py-1 text-sm outline-none bg-gray-50"
           >
-            {Array.from({ length: 20 }, (_, i) => 2026 + i).map(
-              (year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              )
-            )}
+            {Array.from({ length: 5 }, (_, i) => 2026 + i).map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
           </select>
-
         </div>
 
-        {/* Nama Hari */}
-        <div className="grid grid-cols-7 gap-1 mb-2 text-center text-[11px] font-semibold text-gray-500">
-          <div>Min</div>
-          <div>Sen</div>
-          <div>Sel</div>
-          <div>Rab</div>
-          <div>Kam</div>
-          <div>Jum</div>
-          <div>Sab</div>
-        </div>
-
-        {/* Kalender */}
         <div className="grid grid-cols-7 gap-1">
-
-          {/* Kosong */}
-          {Array.from({ length: firstDay }).map((_, index) => (
-            <div key={index}></div>
-          ))}
-
-          {/* Tanggal */}
-          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(
-            (day) => {
-              const fullDate = `${selectedYear}-${String(
-                selectedMonth
-              ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-
-              return (
-                <button
-                  key={day}
-                  onClick={() => setSelectedDate(fullDate)}
-                  className={`h-9 rounded-lg text-xs border transition
-                    ${
-                      selectedDate === fullDate
-                        ? "bg-black text-white"
-                        : "hover:bg-gray-100"
-                    }`}
-                >
-                  {day}
-                </button>
-              );
-            }
-          )}
+          {Array.from({ length: firstDay }).map((_, i) => <div key={i}></div>)}
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+            const fullDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            return (
+              <button
+                key={day}
+                onClick={() => setSelectedDate(fullDate)}
+                className={`h-9 rounded-lg text-xs border ${selectedDate === fullDate ? "bg-black text-white" : "hover:bg-gray-100 bg-white"}`}
+              >
+                {day}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Jam */}
-      <h2 className="font-semibold mt-6 mb-3">
-        Pilih Jam
-      </h2>
-
-      <div className="grid grid-cols-3 gap-2">
-        {times.map((time) => (
-          <button
-            key={time}
-            onClick={() => setSelectedTime(time)}
-            className={`py-2 rounded-lg border text-sm
-              ${
-                selectedTime === time
-                  ? "bg-black text-white"
-                  : "bg-white"
-              }`}
+      <div className="grid grid-cols-2 gap-4 mb-2">
+        <div>
+          <label className="block mb-2 text-sm font-semibold">Jam Mulai</label>
+          <select
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="w-full border p-2.5 rounded-xl text-sm bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-500"
           >
-            {time}
-          </button>
-        ))}
+            <option value="">Pilih Jam</option>
+            {times.map((t) => (
+              <option key={`start-${t}`} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-2 text-sm font-semibold">Jam Selesai</label>
+          <select
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            className="w-full border p-2.5 rounded-xl text-sm bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Pilih Jam</option>
+            {times.map((t) => (
+              <option key={`end-${t}`} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
       </div>
+      <p className="text-[10px] text-gray-400 mb-6 font-medium">* Maksimal durasi booking adalah 2 jam</p>
 
-      {/* Nama */}
-      <div className="mt-5">
-        <label className="block mb-2 text-sm font-semibold">
-          Nama
-        </label>
-
+      {/* Form Input */}
+      <div className="space-y-4">
         <input
           type="text"
           value={nama}
           onChange={(e) => setNama(e.target.value)}
-          placeholder="Masukkan nama"
-          className="w-full border p-2 rounded-lg text-sm"
+          placeholder="Nama Anda"
+          className="w-full border p-3 rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"
         />
-      </div>
-
-      {/* Nomor */}
-      <div className="mt-4">
-        <label className="block mb-2 text-sm font-semibold">
-          Nomor HP
-        </label>
-
         <input
           type="text"
           value={nomor}
           onChange={(e) => setNomor(e.target.value)}
-          placeholder="Masukkan nomor HP"
-          className="w-full border p-2 rounded-lg text-sm"
+          placeholder="Nomor HP"
+          className="w-full border p-3 rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"
+        />
+        
+        <textarea
+          value={catatan}
+          onChange={(e) => setCatatan(e.target.value)}
+          placeholder="Catatan tambahan (opsional)"
+          rows={3}
+          className="w-full border p-3 rounded-xl text-sm outline-none resize-none shadow-sm focus:border-blue-500 transition-colors"
         />
       </div>
 
-      {/* Tombol */}
       <button
         onClick={handleBooking}
-        className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold"
+        className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all"
       >
         Booking Sekarang
       </button>
 
-      {/* Ringkasan Booking */}
+      {/* Ringkasan */}
       {bookingSummary && (
-        <div className="mt-6 border rounded-2xl p-4 bg-green-50 shadow-sm">
-
-          <h2 className="text-lg font-bold text-green-700 mb-3">
-            Ringkasan Booking
+        <div className="mt-8 border-2 border-dashed rounded-2xl p-4 bg-white">
+          <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+             🎟️ Tiket Booking Anda
           </h2>
-
-          <div className="space-y-2 text-sm">
-
-            <div>
-              <span className="font-semibold">
-                Tanggal:
-              </span>{" "}
-              {bookingSummary.tanggal}
-            </div>
-
-            <div>
-              <span className="font-semibold">
-                Jam:
-              </span>{" "}
-              {bookingSummary.jam}
-            </div>
-
-            <div>
-              <span className="font-semibold">
-                Nama:
-              </span>{" "}
-              {bookingSummary.nama}
-            </div>
-
-            <div>
-              <span className="font-semibold">
-                Nomor HP:
-              </span>{" "}
-              {bookingSummary.nomor}
-            </div>
-
+          <div className="text-sm space-y-2 border-t pt-3">
+            <div className="flex justify-between"><span className="text-gray-500">Tanggal:</span> <b>{bookingSummary.tanggal}</b></div>
+            <div className="flex justify-between"><span className="text-gray-500">Waktu:</span> <b>{bookingSummary.jamMulai} - {bookingSummary.jamSelesai}</b></div>
+            <div className="flex justify-between"><span className="text-gray-500">Nama:</span> <b>{bookingSummary.nama}</b></div>
+            {bookingSummary.catatan && (
+              <div className="mt-2 bg-gray-50 p-2 rounded-lg italic text-gray-600 text-xs text-center">
+                "{bookingSummary.catatan}"
+              </div>
+            )}
           </div>
         </div>
       )}
-        {/* LINK RIWAYAT BOOKING */}
-      <Link
-        href="/booking/list"
-        className="block text-center mt-4 text-blue-600 font-semibold"
-    >
+
+      <Link href="/booking/list" className="block text-center mt-8 text-blue-600 text-sm font-semibold hover:underline">
         Lihat Riwayat Booking
-    </Link>
+      </Link>
     </div>
   );
 }
