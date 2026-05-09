@@ -21,6 +21,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   favorit Favorit[]
+  booking Booking[]
 }
 
 model Kampus {
@@ -44,41 +45,31 @@ model Fasilitas {
 }
 
 model Tempat {
-
-  id_tempat       String           @id @default(cuid())
-  nama_tempat     String
-  alamat          String
-  jam_buka        String
-  kisaran_harga   String
-  jumlah_meja     Int?             // Ditambahkan (bersifat opsional, tipe data angka)
-  jumlah_lantai   Int?             // Ditambahkan (bersifat opsional, tipe data angka)
-  id_kampus       String
-
-  id_tempat     String   @id
+  id_tempat     String   @id @default(cuid())
   nama_tempat   String
   alamat        String
-
-  //buat map
-  latitude      Float    @default(-6.9175) // Default ke Bandung 
+  
+  // Geolocation
+  latitude      Float    @default(-6.9175) 
   longitude     Float    @default(107.6191)
   
-  // Kolom baru untuk logika status operasional real-time
-  waktu_buka    String   // Format "HH:mm" (Contoh: "08:00")
-  waktu_tutup   String   // Format "HH:mm" (Contoh: "23:00")
+  // Operasional data
+  waktu_buka    String   // Format "HH:mm"
+  waktu_tutup   String   // Format "HH:mm"
+  jam_buka      String?  // Teks UI: "08:00 - 23:00"
   
-  // Kolom opsional untuk tampilan teks di UI
-  jam_buka      String?  // Contoh: "08:00 - 23:00" atau "24 Jam"
-  
-  kisaran_harga String   //
-  id_kampus     String   //
->>>>>>> 961d14a82524bca8d84e6cc9eb3426ca3a8c02da
+  kisaran_harga String
+  jumlah_meja   Int?     
+  jumlah_lantai Int?     
+  id_kampus     String
 
-  kampus        Kampus           @relation(fields: [id_kampus], references: [id_kampus])
-  fasilitas     TempatFasilitas[]
-  kategori      TempatKategori[]
-  favorit       Favorit[]
-  places        Place[]
-  booking       Booking[]
+  // Relasi
+  kampus    Kampus            @relation(fields: [id_kampus], references: [id_kampus]) 
+  fasilitas TempatFasilitas[] 
+  kategori  TempatKategori[]  
+  favorit   Favorit[]         
+  places    Place[]           
+  booking   Booking[]
 }
 
 model TempatKategori {
@@ -126,13 +117,18 @@ model Place {
 
 model Booking {
   id        String   @id @default(cuid())
-  tempatId  String
-  status    String   @default("pending")  // ← tambahkan ini
-  nama      String
   tanggal   DateTime
   jam       String
+  nama      String
   nomor     String
-  createdAt DateTime @default(now())
 
-  tempat    Tempat   @relation(fields: [tempatId], references: [id_tempat])
+  // relasi ke tempat
+  tempatId  String
+  tempat    Tempat  @relation(fields: [tempatId], references: [id_tempat], onDelete: Cascade)
+
+  // opsional relasi ke user (kalau login)
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }

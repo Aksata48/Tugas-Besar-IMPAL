@@ -338,8 +338,6 @@ export default function OwnerDashboard() {
                 </div>
               ) : (
                 <div className="grid gap-4">
-
-                  // Di dalam loop mapping tempatList:
 {tempatList.map((tempat) => (
   <div 
     key={tempat.id_tempat} 

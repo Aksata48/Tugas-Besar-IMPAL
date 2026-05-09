@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // Pastikan path ke file lib prisma Anda sesuai
+import prisma from "@/lib/prisma";
 
-// 1. Menangani method GET
+// 1. GET: Mengambil data
 export async function GET(request: NextRequest) {
   try {
     const tempat = await prisma.tempat.findMany({
@@ -11,25 +11,13 @@ export async function GET(request: NextRequest) {
         kategori: true,
       }
     });
-
-    // Ubah data waktu_buka dan waktu_tutup menjadi satu string jam_buka agar kompatibel dengan frontend
-    const formattedTempat = tempat.map(t => ({
-      ...t,
-      jam_buka: t.waktu_buka && t.waktu_tutup ? `${t.waktu_buka} - ${t.waktu_tutup}` : ""
-    }));
-
-    return NextResponse.json({ success: true, tempat: formattedTempat });
+    return NextResponse.json({ success: true, tempat });
   } catch (error) {
-    console.error("Error fetching tempat:", error);
-    return NextResponse.json(
-      { success: false, message: "Terjadi kesalahan pada server" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: "Server Error" }, { status: 500 });
   }
 }
 
-
-// 2. Menangani method POST (Menyimpan tempat baru)
+// 2. POST: Menyimpan tempat baru
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -40,136 +28,91 @@ export async function POST(request: NextRequest) {
       kisaran_harga, 
       jumlah_meja, 
       jumlah_lantai, 
-      id_kampus,
-      kategori, 
-      fasilitas 
+      id_kampus 
     } = body;
 
-    // Validasi dasar
-    if (!nama_tempat || !alamat || !id_kampus) {
+    // Perbaikan Validasi: Jangan terlalu ketat jika id_kampus bisa default
+    if (!nama_tempat || !alamat) {
       return NextResponse.json(
-        { success: false, message: "Data tidak lengkap" },
+        { success: false, message: "Nama dan Alamat wajib diisi" },
         { status: 400 }
       );
     }
 
-    // Memecah jam_buka menjadi waktu_buka dan waktu_tutup
-    let waktuBuka = "";
-    let waktuTutup = "";
+    // Perbaikan Logika Jam: Memecah "08:00 - 22:00" menjadi dua kolom
+    let waktuBuka = "00:00";
+    let waktuTutup = "00:00";
     if (jam_buka && jam_buka.includes("-")) {
       const parts = jam_buka.split("-");
-      waktuBuka = parts[0]?.trim() || "";
-      waktuTutup = parts[1]?.trim() || "";
+      waktuBuka = parts[0]?.trim() || "00:00";
+      waktuTutup = parts[1]?.trim() || "00:00";
     }
 
-    const dataCreate: any = {
-      nama_tempat,
-      alamat,
-      waktu_buka: waktuBuka,
-      waktu_tutup: waktuTutup,
-      kisaran_harga,
-      id_kampus,
-    };
-
-    if (jumlah_meja !== undefined && jumlah_meja !== "") {
-      dataCreate.jumlah_meja = parseInt(jumlah_meja, 10);
-    }
-    if (jumlah_lantai !== undefined && jumlah_lantai !== "") {
-      dataCreate.jumlah_lantai = parseInt(jumlah_lantai, 10);
-    }
-
-    // Menambahkan relasi nested create jika ada
-    if (kategori) {
-      dataCreate.kategori = kategori;
-    }
-    if (fasilitas) {
-      dataCreate.fasilitas = fasilitas;
-    }
-
-   const tempat = await prisma.tempat.create({
-  data: {
-    nama_tempat: body.nama_tempat,
-    alamat: body.alamat,
-    jam_buka: body.jam_buka,
-    kisaran_harga: body.kisaran_harga,
-    jumlah_meja: body.jumlah_meja ? Number(body.jumlah_meja) : null,
-    jumlah_lantai: body.jumlah_lantai ? Number(body.jumlah_lantai) : null,
-  },
-});
+    const tempat = await prisma.tempat.create({
+      data: {
+        nama_tempat,
+        alamat,
+        // Kita simpan string aslinya DAN pecahannya untuk StatusOperasional
+        jam_buka: jam_buka || "", 
+        waktu_buka: waktuBuka,
+        waktu_tutup: waktuTutup,
+        kisaran_harga: kisaran_harga || "",
+        jumlah_meja: jumlah_meja ? Number(jumlah_meja) : 0,
+        jumlah_lantai: jumlah_lantai ? Number(jumlah_lantai) : 1,
+        // Fallback ID Kampus jika tidak dipilih di form
+        id_kampus: id_kampus || "KMP-TELU-01", 
+      },
+    });
 
     return NextResponse.json({ success: true, tempat });
   } catch (error) {
-    console.error("Error creating tempat:", error);
-    return NextResponse.json(
-      { success: false, message: "Gagal menyimpan tempat" },
-      { status: 500 }
-    );
+    console.error("Error POST:", error);
+    return NextResponse.json({ success: false, message: "Gagal menyimpan ke database" }, { status: 500 });
   }
 }
 
-// 3. Menangani method PATCH (Mengubah data tempat)
+// 3. PATCH: Edit tempat
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id_tempat, nama_tempat, alamat, jam_buka, kisaran_harga, jumlah_meja, jumlah_lantai } = body;
+    const { id_tempat, jam_buka } = body;
 
-    const dataUpdate: any = {};
-    if (nama_tempat) dataUpdate.nama_tempat = nama_tempat;
-    if (alamat) dataUpdate.alamat = alamat;
-    if (kisaran_harga) dataUpdate.kisaran_harga = kisaran_harga;
+    if (!id_tempat) return NextResponse.json({ success: false, message: "ID tidak ditemukan" }, { status: 400 });
 
-    // Memecah jam_buka jika diubah
+    // Pecah jam lagi saat edit agar status operasional terupdate
+    let extraUpdate: any = {};
     if (jam_buka && jam_buka.includes("-")) {
       const parts = jam_buka.split("-");
-      dataUpdate.waktu_buka = parts[0]?.trim() || "";
-      dataUpdate.waktu_tutup = parts[1]?.trim() || "";
-    }
-
-    if (jumlah_meja !== undefined) {
-      dataUpdate.jumlah_meja = jumlah_meja ? parseInt(jumlah_meja, 10) : null;
-    }
-    if (jumlah_lantai !== undefined) {
-      dataUpdate.jumlah_lantai = jumlah_lantai ? parseInt(jumlah_lantai, 10) : null;
+      extraUpdate.waktu_buka = parts[0]?.trim();
+      extraUpdate.waktu_tutup = parts[1]?.trim();
     }
 
     const tempat = await prisma.tempat.update({
-  where: { id_tempat: body.id_tempat },
-  data: {
-    nama_tempat: body.nama_tempat,
-    alamat: body.alamat,
-    jam_buka: body.jam_buka,
-    kisaran_harga: body.kisaran_harga,
-    jumlah_meja: body.jumlah_meja ? Number(body.jumlah_meja) : null,
-    jumlah_lantai: body.jumlah_lantai ? Number(body.jumlah_lantai) : null,
-  },
-});
+      where: { id_tempat },
+      data: {
+        nama_tempat: body.nama_tempat,
+        alamat: body.alamat,
+        jam_buka: body.jam_buka,
+        kisaran_harga: body.kisaran_harga,
+        jumlah_meja: body.jumlah_meja ? Number(body.jumlah_me_ja) : null,
+        jumlah_lantai: body.jumlah_lantai ? Number(body.jumlah_lantai) : null,
+        ...extraUpdate
+      },
+    });
 
     return NextResponse.json({ success: true, tempat });
   } catch (error) {
-    console.error("Error updating tempat:", error);
-    return NextResponse.json(
-      { success: false, message: "Gagal mengupdate tempat" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: "Gagal update" }, { status: 500 });
   }
 }
 
-// 4. Menangani method DELETE (Menghapus tempat)
+// 4. DELETE
 export async function DELETE(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { id_tempat } = body;
-
-    await prisma.tempat.delete({
-      where: { id_tempat },
-    });
-
+    const { id_tempat } = await request.json();
+    await prisma.tempat.delete({ where: { id_tempat } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting tempat:", error);
-    return NextResponse.json(
-      { success: false, message: "Gagal menghapus tempat" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: "Gagal hapus" }, { status: 500 });
   }
 }
