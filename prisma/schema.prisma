@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -43,6 +44,7 @@ model Fasilitas {
 }
 
 model Tempat {
+
   id_tempat       String           @id @default(cuid())
   nama_tempat     String
   alamat          String
@@ -51,6 +53,25 @@ model Tempat {
   jumlah_meja     Int?             // Ditambahkan (bersifat opsional, tipe data angka)
   jumlah_lantai   Int?             // Ditambahkan (bersifat opsional, tipe data angka)
   id_kampus       String
+
+  id_tempat     String   @id
+  nama_tempat   String
+  alamat        String
+
+  //buat map
+  latitude      Float    @default(-6.9175) // Default ke Bandung 
+  longitude     Float    @default(107.6191)
+  
+  // Kolom baru untuk logika status operasional real-time
+  waktu_buka    String   // Format "HH:mm" (Contoh: "08:00")
+  waktu_tutup   String   // Format "HH:mm" (Contoh: "23:00")
+  
+  // Kolom opsional untuk tampilan teks di UI
+  jam_buka      String?  // Contoh: "08:00 - 23:00" atau "24 Jam"
+  
+  kisaran_harga String   //
+  id_kampus     String   //
+>>>>>>> 961d14a82524bca8d84e6cc9eb3426ca3a8c02da
 
   kampus        Kampus           @relation(fields: [id_kampus], references: [id_kampus])
   fasilitas     TempatFasilitas[]

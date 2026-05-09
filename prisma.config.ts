@@ -5,7 +5,6 @@ export default defineConfig({
     seed: 'npx tsx prisma/seed.ts',
   },
   datasource: {
-    // Memberitahu Prisma CLI lokasi database Anda
-    url: 'file:./dev.db',
+    url: 'file:./prisma/dev.db', 
   },
 });
