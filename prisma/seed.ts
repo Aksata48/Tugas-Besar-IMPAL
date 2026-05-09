@@ -21,6 +21,8 @@ async function main() {
       id_kampus: "KMP-TELU-01",
       nama_kampus: "Telkom University",
       alamat_kampus: "Jl. Telekomunikasi No. 1, Terusan Buahbatu - Bojongsoang, Bandung",
+      latitude: -6.9731,
+      longitude: 107.6306,
     },
   });
 
