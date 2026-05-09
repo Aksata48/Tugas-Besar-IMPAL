@@ -2,20 +2,19 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2, MessageSquare, Ticket } from "lucide-react";
+import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2, MessageSquare } from "lucide-react";
 import FavoriteActionCard from "./FavoriteActionCard";
-import ReviewForm from "@/app/detailtempat/reviewfrom"; 
-import StatusOperasional from "@/app/detailtempat/statusOperasional"; 
+import ReviewForm from "@/app/detailtempat/reviewfrom";
+import StatusOperasional from "@/app/detailtempat/statusOperasional";
 import TempatMap from "@/components/Map";
+import EstimasiJarak from "@/app/detailtempat/estimasiJarak";
+import Footer from "@/components/Footer";
 
-// Server Component: Sekarang params harus di-await sebelum dipakai
 export default async function DetailTempatPage({ params }: { params: Promise<{ id: string }> }) {
-  
-  // PERBAIKAN UTAMA: Harus di-await karena params sekarang adalah Promise di Next.js terbaru
+
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
-  // Query lengkap mengambil detail tempat, fasilitas, kategori, dan info kampus
   const tempat = await prisma.tempat.findUnique({
     where: { id_tempat: id },
     include: {
@@ -35,17 +34,24 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
 
   const reviews = (tempat as any).places || [];
   const hasReviews = reviews.length > 0;
-  const displayRating = hasReviews 
+  const displayRating = hasReviews
     ? (reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / reviews.length).toFixed(1)
     : "New";
 
+  // FIX KOORDINAT — extract dulu ke variabel dengan type assertion + fallback
+  const kampusData = tempat.kampus as any;
+  const kampusLat: number = typeof kampusData.latitude === "number" ? kampusData.latitude : -6.9731;
+  const kampusLng: number = typeof kampusData.longitude === "number" ? kampusData.longitude : 107.6306;
+  const tempatLat: number = typeof tempat.latitude === "number" ? tempat.latitude : -6.9175;
+  const tempatLng: number = typeof tempat.longitude === "number" ? tempat.longitude : 107.6191;
+
   return (
     <main className="min-h-screen bg-gray-50 pb-20">
-      
+
       {/* HEADER / GAMBAR UTAMA */}
       <div className="relative w-full h-[400px] md:h-[500px]">
-        <Image 
-          src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=1200&auto=format&fit=crop" 
+        <Image
+          src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=1200&auto=format&fit=crop"
           alt={tempat.nama_tempat}
           fill
           priority
@@ -53,7 +59,7 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
           className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
-        
+
         <div className="absolute bottom-0 w-full p-8 max-w-5xl mx-auto left-0 right-0">
           <Link href="/" className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6 transition font-medium">
             <ArrowLeft size={20} /> Kembali ke Beranda
@@ -62,12 +68,10 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
             <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
               {tempat.kategori[0]?.kategori.nama_kategori || 'Nongki'}
             </span>
-            
-            <StatusOperasional 
-              buka={tempat.waktu_buka} 
-              tutup={tempat.waktu_tutup} 
+            <StatusOperasional
+              buka={tempat.waktu_buka}
+              tutup={tempat.waktu_tutup}
             />
-
             <div className="flex items-center gap-1 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold shadow-lg">
               <Star size={16} className="fill-yellow-900" /> {displayRating}
             </div>
@@ -81,17 +85,17 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
 
       {/* KONTEN UTAMA */}
       <div className="max-w-5xl mx-auto px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+
+        {/* KOLOM KIRI */}
         <div className="md:col-span-2 space-y-8">
-          
+
           {/* Card Info Dasar */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-6 justify-between">
             <div className="flex items-start gap-4">
               <div className="bg-blue-50 p-3 rounded-xl text-blue-600"><Clock size={24} /></div>
               <div>
                 <p className="text-[10px] text-gray-400 font-black uppercase tracking-wider mb-1">Jam Operasional</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-lg font-extrabold text-gray-800">{tempat.jam_buka}</p>
-                </div>
+                <p className="text-lg font-extrabold text-gray-800">{tempat.jam_buka}</p>
               </div>
             </div>
             <div className="hidden sm:block w-px bg-gray-100"></div>
@@ -104,9 +108,9 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
             </div>
           </div>
 
-          {/* Lokasi Kampus Terdekat */}
-          <div>
-            <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Lokasi Kampus Terdekat</h3>
+          {/* Lokasi Kampus Terdekat + Estimasi Jarak */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Lokasi Kampus Terdekat</h3>
             <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
               <div className="bg-orange-50 p-3 rounded-full text-orange-600"><Building size={24} /></div>
               <div>
@@ -114,19 +118,29 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
                 <p className="text-sm text-gray-500 font-medium">{tempat.kampus.alamat_kampus}</p>
               </div>
             </div>
+
+            {/* Estimasi Jarak */}
+            <EstimasiJarak
+              kampusLat={kampusLat}
+              kampusLng={kampusLng}
+              tempatLat={tempatLat}
+              tempatLng={tempatLng}
+              namaKampus={tempat.kampus.nama_kampus}
+            />
           </div>
 
-          {/* BAGIAN MAPS (Berdasarkan Rekomendasi Desain) */}       
-<div className="mt-8">
-  <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Lokasi</h3>
-  <div className="h-[350px] w-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 relative">
-    <TempatMap 
-      lat={tempat.latitude ?? -6.9175} 
-      lng={tempat.longitude ?? 107.6191} 
-      nama={tempat.nama_tempat} 
-    />
-  </div>
-</div>
+          {/* Lokasi Map */}
+          <div>
+            <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Lokasi</h3>
+            <div className="h-[350px] w-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 relative">
+              <TempatMap
+                lat={tempatLat}
+                lng={tempatLng}
+                nama={tempat.nama_tempat}
+              />
+            </div>
+          </div>
+
           {/* Fasilitas */}
           <div>
             <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Fasilitas Tersedia</h3>
@@ -140,59 +154,39 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
             </div>
           </div>
 
-          {/* Ulasan/Review */}
+          {/* Ulasan & Rating */}
           <div>
             <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
               <MessageSquare size={20} /> Ulasan & Rating
             </h3>
-            <div className="space-y-4">
-              {hasReviews ? (
-                reviews.map((rev: any) => (
-                  <div key={rev.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 py-1 rounded-lg text-xs font-bold border border-yellow-100">
-                        <Star size={12} className="fill-yellow-700" /> {rev.rating}
-                      </div>
-                      {rev.voucher && (
-                        <div className="flex items-center gap-1 text-green-600 text-[10px] font-bold uppercase tracking-wider bg-green-50 px-2 py-1 rounded-lg border border-green-100">
-                          <Ticket size={12} /> {rev.voucher}
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-gray-700 font-medium italic">"{rev.review}"</p>
-                    <p className="text-[10px] text-gray-400 mt-3 uppercase font-black tracking-widest text-right">— {rev.name}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 italic text-sm">Belum ada ulasan untuk tempat ini.</p>
-              )}
-            </div>
-
-            {/* FORM TULIS ULASAN */}
-            <div className="mt-8">
-              <ReviewForm tempatId={id} />
-            </div>
+            <ReviewForm tempatId={id} />
           </div>
-          
-        </div>
 
-        {/* Kolom Kanan: Sidebar Aksi */}
+        </div>
+        {/* END KOLOM KIRI */}
+
+        {/* KOLOM KANAN: Sidebar */}
         <div className="space-y-6">
           <div className="sticky top-24 space-y-4">
-            
-            <FavoriteActionCard tempatId={id} />
-
+            <FavoriteActionCard
+              tempatId={id}
+              lat={tempatLat}
+              lng={tempatLng}
+            />
             <Link
               href="/booking"
               className="block w-full bg-green-600 hover:bg-green-700 text-white text-center py-3 rounded-2xl font-bold shadow-sm transition"
             >
               Booking Tempat
             </Link>
-
           </div>
         </div>
+        {/* END KOLOM KANAN */}
 
       </div>
+      {/* END KONTEN UTAMA */}
+        
+        <Footer />
     </main>
   );
 }

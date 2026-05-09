@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
 }
 
 model User {
@@ -28,6 +27,8 @@ model Kampus {
   id_kampus     String   @id
   nama_kampus   String
   alamat_kampus String
+  latitude       Float //jarakterdekat
+  longitude      Float //jarakterdekat
   tempat        Tempat[]
   places        Place[]
 }
