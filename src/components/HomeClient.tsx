@@ -1,11 +1,10 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Search, MapPin, Clock, Star, ChevronLeft, ChevronRight, LayoutGrid, Coffee, Beer, Utensils, Laptop, Store } from "lucide-react";
+import { Search, MapPin, Star, ChevronLeft, ChevronRight, LayoutGrid, Coffee, Beer, Utensils, Laptop, Store } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import Footer from "./Footer"; // IMPORT FOOTER BARU
+import Footer from "./Footer"; 
 
-// Kumpulan URL gambar untuk Hero Carousel
 const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=1600&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=1600&auto=format&fit=crop",
@@ -55,7 +54,7 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
   return (
     <main className="min-h-screen bg-gray-50">
       
-      {/* 1. HERO SECTION (TIDAK BERUBAH) */}
+      {/* 1. HERO SECTION */}
       <section className="relative w-full max-w-[1600px] mx-auto h-[550px] md:h-[600px] sm:rounded-b-[40px] xl:rounded-[40px] xl:mt-4 overflow-hidden shadow-2xl group">
         {HERO_IMAGES.map((src, index) => (
           <div
@@ -137,8 +136,13 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredData.map((tempat, index) => (
-              <Link href={`/tempat/${tempat.id_tempat}`} key={tempat.id_tempat} className="group flex flex-col bg-white rounded-2xl border border-gray-100 hover:shadow-xl transition-all duration-300 p-3">
+            {filteredData.map((tempat) => (
+              <Link 
+                // PERBAIKAN: Mengarah ke Detail ([id]) sambil membawa nama dan jam buka resto
+                href={`/tempat/${tempat.id_tempat}?nama=${encodeURIComponent(tempat.nama_tempat)}&jam=${encodeURIComponent(tempat.jam_buka)}`} 
+                key={tempat.id_tempat} 
+                className="group flex flex-col bg-white rounded-2xl border border-gray-100 hover:shadow-xl transition-all duration-300 p-3"
+              >
                 <div className="relative h-48 md:h-52 w-full rounded-xl overflow-hidden mb-4">
                   <div className="absolute top-3 left-3 z-10">
                     <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
@@ -175,10 +179,9 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
         )}
       </section>
 
-      {/* 3. CALL TO ACTION SECTION (PEMILIK KAFE) - PENAMBAHAN BARU */}
+      {/* 3. CALL TO ACTION SECTION */}
       <section className="px-6 md:px-8 pb-20 pt-10">
         <div className="max-w-7xl mx-auto bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[40px] p-8 md:p-16 relative overflow-hidden shadow-2xl">
-          {/* Dekorasi Latar Belakang */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/20 rounded-full -ml-10 -mb-10 blur-2xl"></div>
           
@@ -195,11 +198,8 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
                 Mudah, cepat, dan 100% GRATIS!
               </p>
               <div className="flex flex-wrap justify-center lg:justify-start gap-4">
-                <Link href="/register" className="bg-white text-blue-700 px-8 py-4 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl hover:shadow-white/10 active:scale-95">
+                <Link href="/register" className="bg-white text-blue-700 px-8 py-4 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl active:scale-95">
                   Daftar Sebagai Mitra
-                </Link>
-                <Link href="#" className="bg-blue-500/30 text-white border border-white/20 px-8 py-4 rounded-2xl font-bold hover:bg-blue-500/50 transition-all backdrop-blur-sm">
-                  Pelajari Fitur Owner
                 </Link>
               </div>
             </div>
@@ -216,9 +216,7 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
         </div>
       </section>
 
-      {/* 4. FOOTER (PENGGANTIAN FOOTER LAMA) */}
       <Footer />
-
     </main>
   );
 }

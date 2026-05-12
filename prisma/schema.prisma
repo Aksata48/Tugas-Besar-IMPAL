@@ -123,6 +123,9 @@ model Booking {
   jam       String
   nama      String
   nomor     String
+  catatan   String?
+  lantai     String?
+  nomorMeja  String?
 
   // relasi ke tempat
   tempatId  String

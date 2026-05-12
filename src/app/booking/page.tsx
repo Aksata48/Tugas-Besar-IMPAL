@@ -1,69 +1,178 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState, Suspense, useEffect } from "react";
+import { Calendar, Clock, Phone, Download, CheckCircle, Timer, MessageSquare, MapPin, LayoutGrid } from 'lucide-react';
+import { useSearchParams } from "next/navigation";
 
-export default function BookingPage() {
+// --- 1. DATA DENAH SPESIFIK (DIPERBAIKI) ---
+const DATA_DENAH: Record<string, any> = {
+  "Plumeria Cafe & Creative Space": {
+    "Lantai 1": ["Meja 1", "Meja 2", "Meja 3", "Meja 4", "Meja 5", "Meja 6", "Meja 7", "Meja 8", "Meja 9", "Meja 10"],
+    "Lantai 2": ["Meja 11", "Meja 12", "Meja 13", "Meja 14", "Meja 15", "Meja 16", "Meja 17", "Meja 18", "Meja 19", "Meja 20"],
+    "Rooftop (Lantai 3)": ["Meja RT-01", "Meja RT-02", "Meja RT-03", "Meja RT-04", "Meja RT-05", "Meja RT-06", "Meja RT-07", "Meja RT-08", "Meja RT-09", "Meja RT-10"],
+  },
+  "Warkop ADD (Area Dalam)": {
+    "Lantai 1": ["Meja 1", "Meja 2", "Meja 3", "Meja 4", "Meja 5", "Meja 6", "Meja 7"],
+  },
+  "Ruang Delapan Workspace": {
+    "Lantai 1": ["Meja 1", "Meja 2", "Meja 3", "Meja 4", "Meja 5", "Meja 6"],
+    "Lantai 2": ["Meja 7", "Meja 8", "Meja 9", "Meja 10", "Meja 11", "Meja 12"],
+  },
+  "Tom Sushi Trans Studio Mall": {
+    "Lantai 1": ["Meja 1", "Meja 2", "Meja 3", "Meja 4", "Meja 5", "Meja 6", "Meja 7", "Meja 8"],
+    "Lantai 2": ["Meja 9", "Meja 10", "Meja 11", "Meja 12", "Private Room A", "Private Room B", "Private Room C", "Private Room D"],
+  }
+};
+
+// --- KOMPONEN E-TICKET ---
+const SuccessBookingUI = ({ bookingData, onBack }: { bookingData: any, onBack: () => void }) => {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 font-sans animate-in fade-in duration-500">
+      <div className="text-center mb-8">
+        <div className="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <CheckCircle size={32} />
+        </div>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Booking Berhasil!</h1>
+        <p className="text-slate-500 mt-2 font-medium">Tunjukkan tiket ini saat tiba di lokasi.</p>
+      </div>
+
+      <div className="relative w-full max-w-md bg-white rounded-[32px] shadow-2xl overflow-hidden border border-gray-100">
+        <div className="p-8 pb-4">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <p className="text-blue-600 font-bold text-xs tracking-widest uppercase">E-TICKET</p>
+              <h2 className="text-xl font-black text-slate-800 leading-tight uppercase mt-1">
+                {bookingData?.namaTempat}
+              </h2>
+            </div>
+            <div className="text-right">
+              <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-[10px] font-black uppercase mb-2 border border-amber-100 shadow-sm">
+                <Timer size={12} /> Menunggu
+              </div>
+              <p className="text-slate-800 font-bold text-xs">#BK-{bookingData?.id?.slice(-5).toUpperCase() || "NEW"}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+               <div>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Nama</p>
+                  <p className="text-slate-800 font-bold text-base truncate">{bookingData?.nama || "-"}</p>
+               </div>
+               <div>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Lantai & Meja</p>
+                  <p className="text-slate-800 font-bold text-base">{bookingData?.lantai} / {bookingData?.nomorMeja}</p>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-50">
+              <div>
+                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Tanggal</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Calendar size={16} className="text-blue-500" />
+                  <p className="text-slate-800 font-bold text-sm">{bookingData?.tanggal || "-"}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Waktu</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Clock size={16} className="text-pink-500" />
+                  <p className="text-slate-800 font-bold text-sm">{bookingData?.jamMulai} - {bookingData?.jamSelesai}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-gray-100">
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Catatan Tambahan</p>
+              <div className="flex items-start gap-2 mt-1">
+                <MessageSquare size={14} className="text-gray-400 mt-1" />
+                <p className="text-slate-600 italic text-sm leading-relaxed">
+                  {bookingData?.catatan ? `"${bookingData.catatan}"` : "Tidak ada catatan."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-8 pt-0 text-center mt-4 border-t border-dashed border-gray-100 pt-4">
+          <p className="text-gray-300 font-bold text-[9px] tracking-[0.3em] uppercase">VERIFIED BY NONGKIYUK SYSTEM</p>
+        </div>
+      </div>
+
+      <div className="mt-10 w-full max-w-md space-y-4">
+        <button onClick={() => window.print()} className="w-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-lg active:scale-95">
+          <Download size={20} /> Simpan Tiket (PDF)
+        </button>
+        <button onClick={onBack} className="w-full text-blue-600 font-bold py-2 hover:underline transition-all text-center text-sm">
+          Kembali ke Beranda
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- HALAMAN FORM BOOKING UTAMA ---
+function BookingForm() {
+  const searchParams = useSearchParams();
+  const idDariUrl = searchParams.get("id") || "TMP-001";
+  const namaTempatDariUrl = searchParams.get("nama") || "Tempat Pilihan";
+  const jamOperasional = searchParams.get("jam") || "08:00 - 22:00";
+
   const [selectedDate, setSelectedDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [nama, setNama] = useState("");
   const [nomor, setNomor] = useState("");
   const [catatan, setCatatan] = useState("");
-  
-  // State baru untuk notifikasi custom
-  const [showToast, setShowToast] = useState(false);
+  const [selectedLantai, setSelectedLantai] = useState("");
+  const [selectedMeja, setSelectedMeja] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-
+  const [isSuccess, setIsSuccess] = useState(false);
   const [bookingSummary, setBookingSummary] = useState<any>(null);
-
-  const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedMonth, setSelectedMonth] = useState(5);
 
-  const times = Array.from({ length: 24 }, (_, i) => {
-    return `${String(i).padStart(2, "0")}:00`;
-  });
-
-  const monthNames = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-  ];
-
-  const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-  const firstDay = new Date(selectedYear, selectedMonth - 1, 1).getDay();
-
-  // Menghilangkan pesan error otomatis setelah 3 detik
   useEffect(() => {
-    if (errorMessage || showToast) {
-      const timer = setTimeout(() => {
-        setShowToast(false);
-        setErrorMessage("");
-      }, 3000);
-      return () => clearTimeout(timer);
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setNama(userData.username || "");
     }
-  }, [showToast, errorMessage]);
+  }, []);
+
+  // Logika Filter Dinamis Berdasarkan DATA_DENAH
+  const daftarLantai = DATA_DENAH[namaTempatDariUrl] ? Object.keys(DATA_DENAH[namaTempatDariUrl]) : ["Lantai 1"];
+  const daftarMeja = (DATA_DENAH[namaTempatDariUrl] && selectedLantai) 
+    ? DATA_DENAH[namaTempatDariUrl][selectedLantai] 
+    : [];
+
+  const allHours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
+  let availableStartTimes = allHours;
+  let availableEndTimes = allHours;
+
+  if (jamOperasional !== "24 Jam") {
+    const [buka, tutup] = jamOperasional.split(" - ");
+    const bukaHour = parseInt(buka.split(":")[0]);
+    const tutupHour = parseInt(tutup.split(":")[0]);
+    availableStartTimes = allHours.filter(t => parseInt(t.split(":")[0]) >= bukaHour && parseInt(t.split(":")[0]) < tutupHour);
+    availableEndTimes = allHours.filter(t => parseInt(t.split(":")[0]) > bukaHour && parseInt(t.split(":")[0]) <= tutupHour);
+  }
 
   const handleBooking = async () => {
-    setErrorMessage(""); // Reset error setiap klik
-
-    if (!selectedDate || !startTime || !endTime || !nama) {
-      setErrorMessage("Harap isi semua data dengan lengkap!");
+    setErrorMessage("");
+    if (!nama.trim() || !nomor.trim() || !selectedDate || !startTime || !endTime || !selectedLantai || !selectedMeja) {
+      setErrorMessage("Semua data termasuk Lantai & Meja wajib diisi!");
       return;
     }
 
     const startHour = parseInt(startTime.split(":")[0]);
     const endHour = parseInt(endTime.split(":")[0]);
-    const durasi = endHour - startHour;
-
-    if (endHour <= startHour) {
-      setErrorMessage("Jam selesai harus setelah jam mulai.");
+    if (endHour - startHour > 2) {
+      setErrorMessage("Maksimal durasi booking adalah 2 jam.");
       return;
     }
 
-    if (durasi > 2) {
-      setErrorMessage(`Durasi ${durasi} jam terlalu lama. Maksimal 2 jam!`);
-      return;
-    }
+    const storedUser = localStorage.getItem("user");
+    const userData = storedUser ? JSON.parse(storedUser) : null;
 
     try {
       const response = await fetch("/api/booking", {
@@ -73,95 +182,75 @@ export default function BookingPage() {
           tanggal: selectedDate,
           jamMulai: startTime,
           jamSelesai: endTime,
-          nama,
-          nomor,
+          nama, 
+          nomor, 
           catatan,
-          tempatId: "TMP-001",
+          tempatId: idDariUrl,
+          namaTempat: namaTempatDariUrl,
+          username: userData?.username,
+          lantai: selectedLantai,
+          nomorMeja: selectedMeja
         }),
       });
 
       const data = await response.json();
-
       if (data.success) {
         setBookingSummary({
-          tanggal: selectedDate,
-          jamMulai: startTime,
-          jamSelesai: endTime,
-          nama,
-          nomor,
-          catatan,
+            ...data.booking,
+            namaTempat: namaTempatDariUrl,
+            jamMulai: startTime,
+            jamSelesai: endTime,
+            tanggal: selectedDate,
+            nama, nomor, catatan,
+            lantai: selectedLantai,
+            nomorMeja: selectedMeja
         });
-
-        setShowToast(true); // Tampilkan notifikasi sukses custom
-        
-        // Reset form
-        setStartTime("");
-        setEndTime("");
-        setNama("");
-        setNomor("");
-        setCatatan("");
+        setIsSuccess(true);
       } else {
         setErrorMessage(data.message || "Gagal melakukan booking.");
       }
     } catch (error) {
-      setErrorMessage("Koneksi bermasalah, coba lagi.");
+      setErrorMessage("Koneksi bermasalah.");
     }
   };
 
+  if (isSuccess) {
+    return <SuccessBookingUI bookingData={bookingSummary} onBack={() => window.location.href = "/"} />;
+  }
+
   return (
-    <div className="p-4 max-w-md mx-auto relative min-h-screen">
-      
-      {/* --- CUSTOM NOTIFICATION (TOAST) --- */}
-      {showToast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-72 bg-green-500 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
-          <span className="text-xl">✅</span>
-          <p className="text-sm font-bold">Booking Berhasil Disimpan!</p>
+    <div className="p-4 max-w-md mx-auto relative min-h-screen bg-gray-50/30">
+      <div className="text-center mb-8">
+        <p className="text-[10px] font-black text-blue-600 tracking-[0.3em] uppercase mb-2">Booking Form</p>
+        <h2 className="text-2xl font-black text-slate-800 uppercase leading-tight px-4">{namaTempatDariUrl}</h2>
+        <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-gray-100 shadow-sm mt-3">
+            <Clock size={12} className="text-gray-400" />
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">{jamOperasional}</p>
         </div>
-      )}
+      </div>
 
-      {/* --- ERROR MESSAGE --- */}
       {errorMessage && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-200 text-red-700 text-sm rounded-xl flex items-center gap-2">
-          <span>⚠️</span> {errorMessage}
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs font-bold rounded-r-xl flex items-center gap-3 shadow-sm animate-pulse">
+          <span className="text-lg">⚠️</span> {errorMessage}
         </div>
       )}
 
-      <h1 className="text-2xl font-bold mb-5">Booking Tempat</h1>
-
-      {/* Kalender */}
-      <div className="bg-white border rounded-2xl p-4 shadow-sm mb-6">
-        <div className="flex items-center justify-between mb-4 gap-2">
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="border rounded-lg px-2 py-1 text-sm outline-none bg-gray-50"
-          >
-            {monthNames.map((month, index) => (
-              <option key={month} value={index + 1}>{month}</option>
-            ))}
+      {/* KALENDER */}
+      <div className="bg-white border border-gray-100 rounded-[32px] p-5 shadow-sm mb-6">
+        <div className="flex items-center justify-between mb-5 px-1">
+          <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} className="bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-black outline-none cursor-pointer text-slate-700">
+            {["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"].map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
           </select>
-
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="border rounded-lg px-2 py-1 text-sm outline-none bg-gray-50"
-          >
-            {Array.from({ length: 5 }, (_, i) => 2026 + i).map((year) => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
+          <span className="text-xs font-black text-gray-300 tracking-widest uppercase">2026</span>
         </div>
 
-        <div className="grid grid-cols-7 gap-1">
-          {Array.from({ length: firstDay }).map((_, i) => <div key={i}></div>)}
-          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-            const fullDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        <div className="grid grid-cols-7 gap-2">
+          {["S", "S", "R", "K", "J", "S", "M"].map((d, i) => <div key={i} className="text-center text-[10px] font-black text-gray-200">{d}</div>)}
+          {Array.from({ length: new Date(2026, selectedMonth - 1, 1).getDay() }).map((_, i) => <div key={i}></div>)}
+          {Array.from({ length: new Date(2026, selectedMonth, 0).getDate() }, (_, i) => i + 1).map((day) => {
+            const dateStr = `2026-${String(selectedMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
             return (
-              <button
-                key={day}
-                onClick={() => setSelectedDate(fullDate)}
-                className={`h-9 rounded-lg text-xs border ${selectedDate === fullDate ? "bg-black text-white" : "hover:bg-gray-100 bg-white"}`}
-              >
+              <button key={day} onClick={() => setSelectedDate(dateStr)} className={`h-10 rounded-2xl text-xs font-black transition-all ${selectedDate === dateStr ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "hover:bg-blue-50 text-slate-600"}`}>
                 {day}
               </button>
             );
@@ -169,93 +258,60 @@ export default function BookingPage() {
         </div>
       </div>
 
-      {/* Jam */}
-      <div className="grid grid-cols-2 gap-4 mb-2">
+      {/* PILIHAN WAKTU */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="block mb-2 text-sm font-semibold">Jam Mulai</label>
-          <select
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            className="w-full border p-2.5 rounded-xl text-sm bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Pilih Jam</option>
-            {times.map((t) => (
-              <option key={`start-${t}`} value={t}>{t}</option>
-            ))}
+          <label className="block mb-2 text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Mulai</label>
+          <select value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full border-none p-4 rounded-2xl text-sm font-bold bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-100">
+            <option value="">Jam</option>
+            {availableStartTimes.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
-
         <div>
-          <label className="block mb-2 text-sm font-semibold">Jam Selesai</label>
-          <select
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            className="w-full border p-2.5 rounded-xl text-sm bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Pilih Jam</option>
-            {times.map((t) => (
-              <option key={`end-${t}`} value={t}>{t}</option>
-            ))}
+          <label className="block mb-2 text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Selesai</label>
+          <select value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full border-none p-4 rounded-2xl text-sm font-bold bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-100">
+            <option value="">Jam</option>
+            {availableEndTimes.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
       </div>
-      <p className="text-[10px] text-gray-400 mb-6 font-medium">* Maksimal durasi booking adalah 2 jam</p>
 
-      {/* Form Input */}
+      {/* DROP DOWN LANTAI & MEJA DINAMIS */}
+      <div className="grid grid-cols-2 gap-4 mb-6 pt-4 border-t border-dashed border-gray-200">
+        <div>
+          <label className="block mb-2 text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Lantai</label>
+          <select value={selectedLantai} onChange={(e) => { setSelectedLantai(e.target.value); setSelectedMeja(""); }} className="w-full border-none p-4 rounded-2xl text-sm font-bold bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-100">
+            <option value="">-- Lantai --</option>
+            {daftarLantai.map(lt => <option key={lt} value={lt}>{lt}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block mb-2 text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Meja</label>
+          <select value={selectedMeja} onChange={(e) => setSelectedMeja(e.target.value)} disabled={!selectedLantai} className="w-full border-none p-4 rounded-2xl text-sm font-bold bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-100 disabled:opacity-50">
+            <option value="">-- Meja --</option>
+            {daftarMeja.map((mj: string) => <option key={mj} value={mj}>{mj}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* INPUT IDENTITAS */}
       <div className="space-y-4">
-        <input
-          type="text"
-          value={nama}
-          onChange={(e) => setNama(e.target.value)}
-          placeholder="Nama Anda"
-          className="w-full border p-3 rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"
-        />
-        <input
-          type="text"
-          value={nomor}
-          onChange={(e) => setNomor(e.target.value)}
-          placeholder="Nomor HP"
-          className="w-full border p-3 rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"
-        />
-        
-        <textarea
-          value={catatan}
-          onChange={(e) => setCatatan(e.target.value)}
-          placeholder="Catatan tambahan (opsional)"
-          rows={3}
-          className="w-full border p-3 rounded-xl text-sm outline-none resize-none shadow-sm focus:border-blue-500 transition-colors"
-        />
+        <input type="text" value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama Pemesan" className="w-full border-none p-5 rounded-2xl text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-blue-100" />
+        <input type="text" value={nomor} onChange={(e) => setNomor(e.target.value)} placeholder="WhatsApp (08...)" className="w-full border-none p-5 rounded-2xl text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-blue-100" />
+        <textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Ada permintaan khusus?" rows={2} className="w-full border-none p-5 rounded-2xl text-sm font-bold outline-none shadow-sm resize-none focus:ring-2 focus:ring-blue-100" />
       </div>
 
-      <button
-        onClick={handleBooking}
-        className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all"
-      >
-        Booking Sekarang
+      <button onClick={handleBooking} className="w-full mt-10 bg-blue-600 hover:bg-slate-900 text-white py-5 rounded-[24px] font-black text-lg shadow-xl shadow-blue-100 active:scale-[0.98] transition-all uppercase tracking-widest">
+        Konfirmasi Booking
       </button>
-
-      {/* Ringkasan */}
-      {bookingSummary && (
-        <div className="mt-8 border-2 border-dashed rounded-2xl p-4 bg-white">
-          <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-             🎟️ Tiket Booking Anda
-          </h2>
-          <div className="text-sm space-y-2 border-t pt-3">
-            <div className="flex justify-between"><span className="text-gray-500">Tanggal:</span> <b>{bookingSummary.tanggal}</b></div>
-            <div className="flex justify-between"><span className="text-gray-500">Waktu:</span> <b>{bookingSummary.jamMulai} - {bookingSummary.jamSelesai}</b></div>
-            <div className="flex justify-between"><span className="text-gray-500">Nama:</span> <b>{bookingSummary.nama}</b></div>
-            {bookingSummary.catatan && (
-              <div className="mt-2 bg-gray-50 p-2 rounded-lg italic text-gray-600 text-xs text-center">
-                "{bookingSummary.catatan}"
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <Link href="/booking/list" className="block text-center mt-8 text-blue-600 text-sm font-semibold hover:underline">
-        Lihat Riwayat Booking
-      </Link>
     </div>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black text-gray-200 animate-pulse uppercase tracking-[0.5em]">Loading...</div>}>
+      <BookingForm />
+    </Suspense>
   );
 }

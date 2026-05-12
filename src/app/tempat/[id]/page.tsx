@@ -38,7 +38,6 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
     ? (reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / reviews.length).toFixed(1)
     : "New";
 
-  // FIX KOORDINAT — extract dulu ke variabel dengan type assertion + fallback
   const kampusData = tempat.kampus as any;
   const kampusLat: number = typeof kampusData.latitude === "number" ? kampusData.latitude : -6.9731;
   const kampusLng: number = typeof kampusData.longitude === "number" ? kampusData.longitude : 107.6306;
@@ -119,7 +118,6 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               </div>
             </div>
 
-            {/* Estimasi Jarak */}
             <EstimasiJarak
               kampusLat={kampusLat}
               kampusLng={kampusLng}
@@ -173,8 +171,9 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               lat={tempatLat}
               lng={tempatLng}
             />
+            {/* FIX ERROR TYPE: Memberikan fallback "" atau string operasional jika null */}
             <Link
-              href="/booking"
+              href={`/booking?id=${id}&nama=${encodeURIComponent(tempat.nama_tempat || "")}&jam=${encodeURIComponent(tempat.jam_buka || "08:00 - 22:00")}`}
               className="block w-full bg-green-600 hover:bg-green-700 text-white text-center py-3 rounded-2xl font-bold shadow-sm transition"
             >
               Booking Tempat

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, LogOut, Menu, X, Coffee } from "lucide-react";
+import { User, LogOut, Menu, X, Coffee, Ticket } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
@@ -60,14 +60,22 @@ export default function Navbar() {
                   {user.role === "OWNER" ? "Dashboard" : "Beranda"}
                 </Link>
 
-                {/* 🔥 TAMBAHAN: Menu Favorit (Hanya muncul untuk USER biasa) */}
+                {/* 🔥 TAMBAHAN: Menu Favorit & Booking (Hanya untuk USER biasa) */}
                 {user.role !== "OWNER" && (
-                  <Link 
-                    href="/favorites" 
-                    className="text-sm font-bold text-gray-600 hover:text-blue-600 transition"
-                  >
-                    Favorit
-                  </Link>
+                  <>
+                    <Link 
+                      href="/favorites" 
+                      className="text-sm font-bold text-gray-600 hover:text-blue-600 transition"
+                    >
+                      Favorit
+                    </Link>
+                    <Link 
+                      href="/my-bookings" 
+                      className="text-sm font-bold text-gray-600 hover:text-blue-600 transition flex items-center gap-1"
+                    >
+                      Booking
+                    </Link>
+                  </>
                 )}
                 
                 <div className="h-6 w-px bg-gray-200"></div>
@@ -132,11 +140,16 @@ export default function Navbar() {
                 {user.role === "OWNER" ? "Dashboard" : "Beranda"}
               </Link>
               
-              {/* 🔥 TAMBAHAN: Menu Favorit Mobile */}
+              {/* 🔥 TAMBAHAN: Menu Favorit & Booking Mobile */}
               {user.role !== "OWNER" && (
-                <Link href="/favorites" className="block px-3 py-2 text-base font-bold text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition">
-                  Favorit
-                </Link>
+                <>
+                  <Link href="/favorites" className="block px-3 py-2 text-base font-bold text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition">
+                    Favorit
+                  </Link>
+                  <Link href="/my-bookings" className="block px-3 py-2 text-base font-bold text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition">
+                    Booking Saya
+                  </Link>
+                </>
               )}
 
               <Link href="/profile" className="block px-3 py-2 text-base font-bold text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition">
