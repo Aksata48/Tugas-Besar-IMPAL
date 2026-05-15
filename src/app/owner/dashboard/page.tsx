@@ -20,6 +20,7 @@ interface Tempat {
   kisaran_harga: string;
   jumlah_meja?: string | number;
   jumlah_lantai?: string | number;
+  id_kampus: string; 
 }
 
 interface Booking {
@@ -39,6 +40,7 @@ const FORM_KOSONG = {
   kisaran_harga: "",
   jumlah_meja: "" as string | number,
   jumlah_lantai: "" as string | number,
+  id_kampus: "",
 };
 
 // ===== 2. CONTOH DATA HARIAN UNTUK GRAFIK =====
@@ -119,7 +121,6 @@ export default function OwnerDashboard() {
     localStorage.removeItem("user");
     router.push("/login");
   };
-
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -170,6 +171,7 @@ export default function OwnerDashboard() {
       kisaran_harga: tempat.kisaran_harga,
       jumlah_meja: tempat.jumlah_meja || "",
       jumlah_lantai: finalLantai(tempat.jumlah_lantai),
+      id_kampus: tempat.id_kampus || "",
     });
     setModalEdit(true);
   };
@@ -292,16 +294,11 @@ export default function OwnerDashboard() {
             <Wallet size={20} /> Laporan Keuangan
           </button>
         </nav>
-
+        <nav>
         <div className="mt-auto pt-6 border-t border-gray-200">
-          <div className="mb-4">
-            <p className="text-sm font-bold text-gray-800">{user.username}</p>
-            <p className="text-xs text-gray-500">{user.email}</p>
+
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-red-500 font-bold hover:text-red-700 transition">
-            <LogOut size={16} /> Keluar
-          </button>
-        </div>
+        </nav>
       </aside>
 
       {/* MAIN CONTENT */}
@@ -641,6 +638,14 @@ function FormTempat({ form, onChange }: { form: any; onChange: any }) {
           <label className={labelClass}>Jumlah Lantai</label>
           <input name="jumlah_lantai" type="number" value={form.jumlah_lantai} onChange={onChange} className={inputClass} />
         </div>
+      </div>
+      <div>
+        <label className={labelClass}>Kampus *</label>
+        <select name="id_kampus" value={form.id_kampus} onChange={onChange} className={inputClass}>
+          <option value="">-- Pilih Kampus --</option>
+          <option value="KMP-TELU-01">Telkom University</option>
+          <option value="KMP-ITB-01">ITB</option>
+        </select>
       </div>
     </div>
   );

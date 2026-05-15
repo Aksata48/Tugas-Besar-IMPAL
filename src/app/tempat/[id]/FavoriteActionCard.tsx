@@ -2,37 +2,31 @@
 
 import { useState, useEffect } from "react";
 
-export default function FavoriteActionCard({ tempatId }: { tempatId: string }) {
+export default function FavoriteActionCard({ tempatId, lat, lng }: { tempatId: string; lat: number; lng: number }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false); // Dipindah ke atas agar rapi
 
-  // 1. Ambil ID User langsung dari localStorage browser (Cara Paling Cepat & Aman)
+  // 1. Ambil ID User dari localStorage
   useEffect(() => {
     try {
-      // Biasanya data login disimpan dengan key "user", "user-storage", atau semacamnya
       const storedUserData = localStorage.getItem("user"); 
-      
       if (storedUserData) {
         const parsedData = JSON.parse(storedUserData);
-        // Sesuaikan dengan letak ID di objek user Anda
         const extractedId = parsedData?.id || parsedData?.user?.id || parsedData?.data?.id;
         
         if (extractedId) {
           setUserId(extractedId);
-          console.log("✅ ID User ditemukan di localStorage:", extractedId);
-        } else {
-          console.log("⚠️ Data user ada di localStorage, tapi ID tidak ditemukan:", parsedData);
+          console.log("✅ ID User ditemukan:", extractedId);
         }
-      } else {
-        console.log("ℹ️ Belum login (tidak ada data user di localStorage).");
       }
     } catch (error) {
       console.error("❌ Gagal membaca localStorage:", error);
     }
   }, []);
 
-  // 2. Cek status favorit ke database (hanya jalan kalau userId sudah dapat)
+  // 2. Cek status favorit ke database
   useEffect(() => {
     if (userId && tempatId) {
       fetch(`/api/favorites?userId=${userId}&tempatId=${tempatId}`)
@@ -46,10 +40,10 @@ export default function FavoriteActionCard({ tempatId }: { tempatId: string }) {
     }
   }, [userId, tempatId]);
 
-  // 3. Eksekusi tombol
+  // 3. Fungsi Tambah/Hapus Favorit
   const handleFavoriteClick = async () => {
     if (!userId) {
-      alert("Silakan login terlebih dahulu untuk menyimpan tempat favorit.");
+      alert("Silakan login terlebih dahulu untuk menyimpan favorit.");
       return;
     }
 
@@ -74,9 +68,17 @@ export default function FavoriteActionCard({ tempatId }: { tempatId: string }) {
     }
   };
 
-  const handleShareClick = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert("Link lokasi berhasil disalin!");
+  // 4. Fungsi Bagikan Lokasi (Google Maps)
+  const handleShareClick = async () => {
+    const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+    try {
+      await navigator.clipboard.writeText(googleMapsUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Fallback jika clipboard gagal
+      alert(`Link lokasi: ${googleMapsUrl}`);
+    }
   };
 
   return (
@@ -95,19 +97,20 @@ export default function FavoriteActionCard({ tempatId }: { tempatId: string }) {
             : "bg-blue-600 text-white hover:bg-blue-700"
         }`}
       >
-        {isLoading ? "Memproses..." : (isFavorite ? "Hapus dari Favorit" : "Simpan ke Favorit")}
+        {isLoading ? "Memproses..." : (isFavorite ? "❤️ Hapus dari Favorit" : "⭐ Simpan ke Favorit")}
       </button>
 
       <button 
-        onClick={handleShareClick}
-        className="w-full py-2.5 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+       onClick={handleShareClick}
+       className={`w-full py-2.5 border rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+         copied 
+           ? "border-green-200 bg-green-50 text-green-600" 
+           : "border-gray-300 text-gray-700 hover:bg-gray-50"
+       }`}
       >
-        Bagikan Lokasi
+       {copied ? "✓ Link Maps Disalin!" : "🔗 Bagikan Lokasi"}
       </button>
-      
-      <p className="text-center text-xs text-gray-400 mt-4 font-mono uppercase">
-        REF_ID: {tempatId}
-      </p>
+
     </div>
   );
 }
