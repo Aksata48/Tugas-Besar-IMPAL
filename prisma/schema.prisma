@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+   url      = "file:./dev.db"
 }
 
 model User {
@@ -126,6 +127,7 @@ model Booking {
   catatan   String?
   lantai     String?
   nomorMeja  String?
+  status    String   @default("pending")
 
   // relasi ke tempat
   tempatId  String
