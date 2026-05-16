@@ -148,13 +148,26 @@ function BookingForm() {
   const allHours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, "0")}:00`);
   let availableStartTimes = allHours;
   let availableEndTimes = allHours;
+  
+  if (jamOperasional && jamOperasional !== "24 Jam" && jamOperasional.includes(" - ")) {
+    const parts = jamOperasional.split(" - ");
+    const buka = parts[0];
+    const tutup = parts[1];
 
-  if (jamOperasional !== "24 Jam") {
-    const [buka, tutup] = jamOperasional.split(" - ");
-    const bukaHour = parseInt(buka.split(":")[0]);
-    const tutupHour = parseInt(tutup.split(":")[0]);
-    availableStartTimes = allHours.filter(t => parseInt(t.split(":")[0]) >= bukaHour && parseInt(t.split(":")[0]) < tutupHour);
-    availableEndTimes = allHours.filter(t => parseInt(t.split(":")[0]) > bukaHour && parseInt(t.split(":")[0]) <= tutupHour);
+    if (buka && tutup) {
+      const bukaHour = parseInt(buka.split(":")[0]) || 0;
+      const tutupHour = parseInt(tutup.split(":")[0]) || 24;
+
+      availableStartTimes = allHours.filter(t => {
+        const h = parseInt(t.split(":")[0]);
+        return h >= bukaHour && h < tutupHour;
+      });
+
+      availableEndTimes = allHours.filter(t => {
+        const h = parseInt(t.split(":")[0]);
+        return h > bukaHour && h <= tutupHour;
+      });
+    }
   }
 
   const handleBooking = async () => {

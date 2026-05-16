@@ -10,6 +10,8 @@ import {
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
+import TempatMap from "@/components/Map";
+
 
 // ===== TIPE DATA =====
 interface Tempat {
@@ -20,7 +22,11 @@ interface Tempat {
   kisaran_harga: string;
   jumlah_meja?: string | number;
   jumlah_lantai?: string | number;
-  id_kampus: string; 
+  id_kampus: string;
+  gambar?: string;
+
+  latitude?: number;
+  longitude?: number;
 }
 
 interface Booking {
@@ -41,6 +47,7 @@ const FORM_KOSONG = {
   jumlah_meja: "" as string | number,
   jumlah_lantai: "" as string | number,
   id_kampus: "",
+  gambar: "",
 };
 
 // ===== 2. CONTOH DATA HARIAN UNTUK GRAFIK =====
@@ -55,6 +62,7 @@ const dataKeuangan = [
 export default function OwnerDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // State Navigasi & Pilihan Tempat untuk Grafik
   const [activeNav, setActiveNav] = useState<"daftar" | "tambah" | "booking" | "statistik">("daftar");
@@ -69,6 +77,10 @@ export default function OwnerDashboard() {
   const [tempatDipilih, setTempatDipilih] = useState<Tempat | null>(null);
   const [form, setForm] = useState(FORM_KOSONG);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
+  const [position, setPosition] = useState({
+  lat: -6.9175,
+  lng: 107.6191,
+});
 
   // State Booking
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -121,18 +133,15 @@ export default function OwnerDashboard() {
     localStorage.removeItem("user");
     router.push("/login");
   };
-
-  const handleFormChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> // 
-) => {
-  const { name, value } = e.target;
-  setForm((prev) => ({
-    ...prev,
-    [name]: name === "jumlah_meja" || name === "jumlah_lantai"
-      ? value === "" ? "" : Number(value)
-      : value,
-  }));
-};
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: name === "jumlah_meja" || name === "jumlah_lantai"
+          ? value === "" ? "" : Number(value)
+          : value,
+    }));
+  };
 
   // TAMBAH
   const bukaModalTambah = () => {
@@ -147,7 +156,11 @@ export default function OwnerDashboard() {
       const res = await fetch("/api/tempat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          latitude: position.lat,
+          longitude: position.lng,
+        }),      
       });
       const data = await res.json();
       if (data.success) {
@@ -166,18 +179,26 @@ export default function OwnerDashboard() {
 
   // EDIT
   const bukaModalEdit = (tempat: Tempat) => {
-    setTempatDipilih(tempat);
-    setForm({
-      nama_tempat: tempat.nama_tempat,
-      alamat: tempat.alamat,
-      jam_buka: tempat.jam_buka,
-      kisaran_harga: tempat.kisaran_harga,
-      jumlah_meja: tempat.jumlah_meja || "",
-      jumlah_lantai: finalLantai(tempat.jumlah_lantai),
-      id_kampus: tempat.id_kampus || "",
-    });
-    setModalEdit(true);
-  };
+  setTempatDipilih(tempat);
+
+  setForm({
+    nama_tempat: tempat.nama_tempat,
+    alamat: tempat.alamat,
+    jam_buka: tempat.jam_buka,
+    kisaran_harga: tempat.kisaran_harga,
+    jumlah_meja: tempat.jumlah_meja || "",
+    jumlah_lantai: tempat.jumlah_lantai || "",
+    id_kampus: tempat.id_kampus || "",
+    gambar: tempat.gambar || "",
+  });
+
+  setPosition({
+    lat: tempat.latitude || -6.9175,
+    lng: tempat.longitude || 107.6191,
+  });
+
+  setModalEdit(true);
+};
 
   const finalLantai = (val: any) => val || "";
 
@@ -188,8 +209,12 @@ export default function OwnerDashboard() {
       const res = await fetch("/api/tempat", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id_tempat: tempatDipilih?.id_tempat, ...form }),
-      });
+      body: JSON.stringify({
+        id_tempat: tempatDipilih?.id_tempat,
+        ...form,
+        latitude: position.lat,
+        longitude: position.lng,
+      }),      });
       const data = await res.json();
       if (data.success) {
         setTempatList((prev) =>
@@ -297,6 +322,11 @@ export default function OwnerDashboard() {
             <Wallet size={20} /> Laporan Keuangan
           </button>
         </nav>
+        <nav>
+        <div className="mt-auto pt-6 border-t border-gray-200">
+
+          </div>
+        </nav>
       </aside>
 
       {/* MAIN CONTENT */}
@@ -311,6 +341,17 @@ export default function OwnerDashboard() {
                 <p className="text-gray-500 mt-2">Pilih tempat untuk melihat statistik atau kelola data tempat Anda.</p>
               </div>
             </header>
+
+            {/* SEARCH */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Cari tempat..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-300 outline-none"
+            />
+          </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-xl font-bold text-gray-800 mb-6 border-b pb-4">
@@ -331,9 +372,15 @@ export default function OwnerDashboard() {
                     + Tambah sekarang
                   </button>
                 </div>
+                
               ) : (
+              
                 <div className="grid gap-4">
-{tempatList.map((tempat) => (
+{tempatList
+  .filter((tempat) =>
+    tempat.nama_tempat.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  .map((tempat) => (
   <div 
     key={tempat.id_tempat} 
     // Saat Card diklik: Simpan data tempat & pindah tab ke statistik
@@ -343,19 +390,37 @@ export default function OwnerDashboard() {
     }}
     className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-orange-400 hover:bg-orange-50/50 cursor-pointer transition group bg-white shadow-sm"
   >
-    <div className="flex-1">
-      <h4 className="font-bold text-gray-800 text-lg group-hover:text-orange-600 transition">
-        {tempat.nama_tempat}
-      </h4>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-        <span className="flex items-center text-gray-500 text-sm gap-1">
-          <MapPin size={14} /> {tempat.alamat}
-        </span>
-        <span className="flex items-center text-gray-500 text-sm gap-1">
-          <Wallet size={14} /> {tempat.kisaran_harga || "Harga belum diatur"}
-        </span>
-      </div>
+    <div className="flex gap-4 items-center flex-1">
+
+  <img
+  src={
+    tempat.gambar?.trim() ||
+    "https://via.placeholder.com/120x90?text=No+Image"
+  }
+  alt={tempat.nama_tempat}
+  onError={(e) => {
+    e.currentTarget.src =
+      "https://via.placeholder.com/120x90?text=No+Image";
+  }}
+  className="w-28 h-24 object-cover rounded-xl border"
+/>
+
+  <div className="flex-1">
+    <h4 className="font-bold text-gray-800 text-lg group-hover:text-orange-600 transition">
+      {tempat.nama_tempat}
+    </h4>
+
+    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+      <span className="flex items-center text-gray-500 text-sm gap-1">
+        <MapPin size={14} /> {tempat.alamat}
+      </span>
+
+      <span className="flex items-center text-gray-500 text-sm gap-1">
+        <Wallet size={14} /> {tempat.kisaran_harga || "Harga belum diatur"}
+      </span>
     </div>
+  </div>
+</div>
 
     {/* Tombol aksi diproteksi e.stopPropagation() agar klik tidak tembus ke card */}
     <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
@@ -404,6 +469,15 @@ export default function OwnerDashboard() {
               <button onClick={fetchBookings} className="ml-auto px-4 py-1.5 rounded-full text-sm font-semibold border border-gray-200 bg-white text-gray-600 hover:border-orange-300 transition">
                 🔄 Refresh
               </button>
+            </div>
+            <div className="mb-4 flex gap-3">
+              <input
+                type="text"
+                placeholder="Cari nama tempat..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-300 outline-none"
+              />
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -515,24 +589,94 @@ export default function OwnerDashboard() {
 </main>
 
       {/* MODAL TAMBAH */}
-      {modalTambah && (
-        <ModalWrapper onClose={() => setModalTambah(false)}>
-          <ModalHeader title="Tambah Tempat Baru" onClose={() => setModalTambah(false)} />
-          <FormTempat form={form} onChange={handleFormChange} />
-          <div className="flex justify-end gap-3 mt-6">
-            <button onClick={() => setModalTambah(false)} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition">Batal</button>
-            <button onClick={handleTambah} disabled={loadingSubmit} className="px-5 py-2 rounded-lg bg-orange-600 text-white font-bold hover:bg-orange-700 transition disabled:opacity-60">
-              {loadingSubmit ? "Menyimpan..." : "Simpan Tempat"}
-            </button>
-          </div>
-        </ModalWrapper>
-      )}
+{modalTambah && (
+  <ModalWrapper onClose={() => setModalTambah(false)}>
+    <ModalHeader
+      title="Tambah Tempat Baru"
+      onClose={() => setModalTambah(false)}
+    />
+
+    <FormTempat
+      form={form}
+      onChange={handleFormChange}
+      position={position}
+      setPosition={setPosition}
+      
+    />
+    <div className="mt-4">
+  <label className="block text-sm font-semibold text-gray-700 mb-2">
+    Lokasi Tempat
+  </label>
+
+  <div className="h-64 rounded-xl overflow-hidden border">
+    <TempatMap
+      lat={position.lat}
+      lng={position.lng}
+      nama="Lokasi Tempat"
+      draggable={true}
+      onDrag={(lat, lng) => {
+        setPosition({ lat, lng });
+      }}
+    />
+  </div>
+
+  <p className="text-xs text-gray-500 mt-2">
+    Latitude: {position.lat.toFixed(5)} | Longitude:{" "}
+    {position.lng.toFixed(5)}
+  </p>
+</div>
+
+    <div className="flex justify-end gap-3 mt-6">
+      <button
+        onClick={() => setModalTambah(false)}
+        className="px-5 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition"
+      >
+        Batal
+      </button>
+
+      <button
+        onClick={handleTambah}
+        disabled={loadingSubmit}
+        className="px-5 py-2 rounded-lg bg-orange-600 text-white font-bold hover:bg-orange-700 transition disabled:opacity-60"
+      >
+        {loadingSubmit ? "Menyimpan..." : "Simpan Tempat"}
+      </button>
+    </div>
+  </ModalWrapper>
+)}
 
       {/* MODAL EDIT */}
       {modalEdit && (
         <ModalWrapper onClose={() => setModalEdit(false)}>
           <ModalHeader title="Edit Tempat" onClose={() => setModalEdit(false)} />
-          <FormTempat form={form} onChange={handleFormChange} />
+          <FormTempat
+            form={form}
+            onChange={handleFormChange}
+            position={position}
+            setPosition={setPosition}
+          />
+          <div className="mt-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Lokasi Tempat
+            </label>
+
+            <div className="h-64 rounded-xl overflow-hidden border">
+              <TempatMap
+                lat={position.lat}
+                lng={position.lng}
+                nama="Lokasi Tempat"
+                draggable={true}
+                onDrag={(lat, lng) => {
+                  setPosition({ lat, lng });
+                }}
+              />
+            </div>
+
+            <p className="text-xs text-gray-500 mt-2">
+              Latitude: {position.lat.toFixed(5)} | Longitude:{" "}
+              {position.lng.toFixed(5)}
+            </p>
+          </div>
           <div className="flex justify-end gap-3 mt-6">
             <button onClick={() => setModalEdit(false)} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition">Batal</button>
             <button onClick={handleEdit} disabled={loadingSubmit} className="px-5 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition disabled:opacity-60">
@@ -587,7 +731,7 @@ function StatusBadge({ status }: { status: string }) {
 function ModalWrapper({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">{children}</div>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">{children}</div>
     </div>
   );
 }
@@ -603,9 +747,22 @@ function ModalHeader({ title, onClose }: { title: string; onClose: () => void })
   );
 }
 
-function FormTempat({ form, onChange }: { form: any; onChange: any }) {
-  const inputClass = "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-400 outline-none transition";
-  const labelClass = "block text-sm font-semibold text-gray-700 mb-1";
+function FormTempat({
+  form,
+  onChange,
+  position,
+  setPosition,
+}: {
+  form: any;
+  onChange: any;
+  position: any;
+  setPosition: any;
+}) {
+  const inputClass =
+    "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-400 outline-none transition";
+
+  const labelClass =
+    "block text-sm font-semibold text-gray-700 mb-1";
 
   return (
     <div className="space-y-4">
@@ -620,7 +777,9 @@ function FormTempat({ form, onChange }: { form: any; onChange: any }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Jam Buka</label>
-          <input name="jam_buka" value={form.jam_buka} onChange={onChange} className={inputClass} />
+          <input
+            type="time"
+            name="jam_buka" value={form.jam_buka} onChange={onChange} className={inputClass} />
         </div>
         <div>
           <label className={labelClass}>Kisaran Harga</label>
@@ -637,6 +796,16 @@ function FormTempat({ form, onChange }: { form: any; onChange: any }) {
           <input name="jumlah_lantai" type="number" value={form.jumlah_lantai} onChange={onChange} className={inputClass} />
         </div>
       </div>
+      <div>
+      <label className={labelClass}>Foto Tempat (URL)</label>
+      <input
+        name="gambar"
+        value={form.gambar}
+        onChange={onChange}
+        placeholder="https://..."
+        className={inputClass}
+      />
+    </div>
       <div>
         <label className={labelClass}>Kampus *</label>
         <select name="id_kampus" value={form.id_kampus} onChange={onChange} className={inputClass}>

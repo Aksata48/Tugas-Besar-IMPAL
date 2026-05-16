@@ -11,7 +11,13 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), {
   ),
 });
 
-export default function TempatMap(props: { lat: number; lng: number; nama: string }) {
+export default function TempatMap(props: { 
+  lat: number; 
+  lng: number; 
+  nama: string
+  draggable?: boolean;
+  onDrag?: (lat: number, lng: number) => void;
+ }) {
   return (
     <div className="h-full w-full relative z-0">
       <LeafletMap {...props} />

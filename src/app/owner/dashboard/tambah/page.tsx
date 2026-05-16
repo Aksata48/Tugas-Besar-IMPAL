@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Store, MapPin, Image as ImageIcon, Plus, Trash2, Save, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import TempatMap from "@/components/Map";
 
 export default function TambahTempatOwner() {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,6 +15,8 @@ export default function TambahTempatOwner() {
     waktu_tutup: "",
     kisaran_harga: "",
     contact_person: "",
+    kategori: "",
+    fasilitas: [] as string[],
     latitude: -6.9740, // Default koordinat (Contoh: Telkom University)
     longitude: 107.6303,
   });
@@ -116,29 +119,213 @@ export default function TambahTempatOwner() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 uppercase">Nama Tempat</label>
-                <input type="text" className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition" required />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 uppercase">Contact Person</label>
-                <input type="text" className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition" required />
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-xs font-bold text-gray-600 uppercase">Alamat Lengkap</label>
-                <input type="text" className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition" required />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 uppercase">Waktu Buka (HH:MM)</label>
-                <input type="time" className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 outline-none transition" required />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 uppercase">Waktu Tutup (HH:MM)</label>
-                <input type="time" className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 outline-none transition" required />
-              </div>
-            </div>
-          </div>
 
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase">
+                  Kategori Tempat
+                </label>
+
+                <select
+                  value={formData.kategori}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      kategori: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 bg-gray-50 border rounded-xl"
+                >
+                  <option value="">Pilih Kategori</option>
+                  <option value="Cafe">Cafe</option>
+                  <option value="Resto">Resto</option>
+                  <option value="Coworking">Coworking</option>
+                  <option value="Warkop">Warkop</option>
+                </select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+  <label className="text-xs font-bold text-gray-600 uppercase">
+    Fasilitas
+  </label>
+
+  <div className="flex flex-wrap gap-3">
+    {["WiFi", "AC", "Outdoor", "Smoking Area", "Mushola"].map((item) => (
+      <label key={item} className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={formData.fasilitas.includes(item)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setFormData({
+                ...formData,
+                fasilitas: [...formData.fasilitas, item],
+              });
+            } else {
+              setFormData({
+                ...formData,
+                fasilitas: formData.fasilitas.filter(
+                  (f) => f !== item
+                ),
+              });
+            }
+          }}
+        />
+        {item}
+      </label>
+    ))}
+  </div>
+</div>
+
+  {/* Nama Tempat */}
+  <div className="space-y-1">
+    <label className="text-xs font-bold text-gray-600 uppercase">
+      Nama Tempat
+    </label>
+
+    <input
+      type="text"
+      value={formData.nama_tempat}
+      onChange={(e) =>
+        setFormData({
+          ...formData,
+          nama_tempat: e.target.value,
+        })
+      }
+      className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition"
+      required
+    />
+  </div>
+
+  {/* Contact Person */}
+  <div className="space-y-1">
+    <label className="text-xs font-bold text-gray-600 uppercase">
+      Contact Person
+    </label>
+
+    <input
+      type="text"
+      value={formData.contact_person}
+      onChange={(e) =>
+        setFormData({
+          ...formData,
+          contact_person: e.target.value,
+        })
+      }
+      className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition"
+      required
+    />
+  </div>
+
+  {/* Alamat */}
+  <div className="space-y-1 md:col-span-2">
+    <label className="text-xs font-bold text-gray-600 uppercase">
+      Alamat Lengkap
+    </label>
+
+    <input
+      type="text"
+      value={formData.alamat}
+      onChange={(e) =>
+        setFormData({
+          ...formData,
+          alamat: e.target.value,
+        })
+      }
+      className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition"
+      required
+    />
+  </div>
+
+  <div className="space-y-2 md:col-span-2">
+  <label className="text-xs font-bold text-gray-600 uppercase">
+    Lokasi Tempat
+  </label>
+
+  <div className="h-72 rounded-2xl overflow-hidden border">
+    <TempatMap
+      lat={formData.latitude}
+      lng={formData.longitude}
+      nama={formData.nama_tempat || "Lokasi Tempat"}
+      draggable={true}
+      onDrag={(lat, lng) => {
+        setFormData({
+          ...formData,
+          latitude: lat,
+          longitude: lng,
+        });
+      }}
+    />
+  </div>
+
+  <div className="space-y-1">
+  <label className="text-xs font-bold text-gray-600 uppercase">
+    Kisaran Harga
+  </label>
+
+  <select
+    value={formData.kisaran_harga}
+    onChange={(e) =>
+      setFormData({
+        ...formData,
+        kisaran_harga: e.target.value,
+      })
+    }
+    className="w-full px-4 py-2 bg-gray-50 border rounded-xl"
+  >
+    <option value="">Pilih Harga</option>
+    <option value="Murah">Murah</option>
+    <option value="Sedang">Sedang</option>
+    <option value="Mahal">Mahal</option>
+  </select>
+</div>
+
+  <p className="text-xs text-gray-500">
+    Latitude: {formData.latitude.toFixed(5)} | Longitude:{" "}
+    {formData.longitude.toFixed(5)}
+  </p>
+</div>
+
+  {/* Waktu Buka */}
+  <div className="space-y-1">
+    <label className="text-xs font-bold text-gray-600 uppercase">
+      Waktu Buka (HH:MM)
+    </label>
+
+    <input
+      type="time"
+      value={formData.waktu_buka}
+      onChange={(e) =>
+        setFormData({
+          ...formData,
+          waktu_buka: e.target.value,
+        })
+      }
+      className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 outline-none transition"
+      required
+    />
+  </div>
+
+  {/* Waktu Tutup */}
+  <div className="space-y-1">
+    <label className="text-xs font-bold text-gray-600 uppercase">
+      Waktu Tutup (HH:MM)
+    </label>
+
+    <input
+      type="time"
+      value={formData.waktu_tutup}
+      onChange={(e) =>
+        setFormData({
+          ...formData,
+          waktu_tutup: e.target.value,
+        })
+      }
+      className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 outline-none transition"
+      required
+    />
+  </div>
+  </div>
+</div>
           {/* Card 2: Pengaturan Lantai & Meja (DINAMIS) */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4 border-b pb-3">
@@ -225,20 +412,44 @@ export default function TambahTempatOwner() {
                   <input type="file" className="hidden" multiple accept="image/*" onChange={handleFileChange} />
                 </label>
               </div>
-              
-              {errGambar && <p className="text-red-500 text-xs font-bold">{errGambar}</p>}
-              
-              {/* Preview Nama File */}
-              {gambarResto.length > 0 && (
-                <ul className="text-sm text-gray-600 list-disc list-inside">
-                  {gambarResto.map((file, i) => (
-                    <li key={i}>{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
 
+              
+              
+                              {errGambar && (
+                  <p className="text-red-500 text-xs font-bold">
+                    {errGambar}
+                  </p>
+                )}
+
+                {/* Preview Nama File */}
+                {gambarResto.length > 0 && (
+                  <div className="space-y-2">
+                    {gambarResto.map((file, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between bg-gray-50 border rounded-lg px-3 py-2"
+                      >
+                        <div className="text-sm text-gray-600">
+                          {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGambarResto(
+                              gambarResto.filter((_, index) => index !== i)
+                            );
+                          }}
+                          className="text-red-500 text-sm font-semibold hover:text-red-700"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                </div>
+</div>
           {/* Tombol Submit */}
           <button 
             type="submit" 

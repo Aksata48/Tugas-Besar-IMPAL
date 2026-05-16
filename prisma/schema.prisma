@@ -50,9 +50,11 @@ model Tempat {
   id_tempat     String   @id
   nama_tempat   String
   alamat        String
-
   //buat map
-  latitude      Float    @default(-6.9175) // Default ke Bandung 
+  gambar String?
+  
+  // Geolocation
+  latitude      Float    @default(-6.9175) 
   longitude     Float    @default(107.6191)
   
   // Kolom baru untuk logika status operasional real-time
