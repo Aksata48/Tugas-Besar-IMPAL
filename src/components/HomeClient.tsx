@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Search, MapPin, Star, ChevronLeft, ChevronRight, LayoutGrid, Coffee, Beer, Utensils, Laptop, Store } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,9 +22,28 @@ const CATEGORIES = [
 ];
 
 export default function HomeClient({ tempatList }: { tempatList: any[] }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // =====================================================
+  // ROLE-BASED GUARD: Jika OWNER masuk ke Homepage,
+  // langsung redirect ke /owner/dashboard.
+  // =====================================================
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        const userData = JSON.parse(stored);
+        if (userData?.role === "OWNER") {
+          router.replace("/owner/dashboard");
+        }
+      } catch {
+        // localStorage corrupt → biarkan
+      }
+    }
+  }, [router]);
 
   const nextSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev === HERO_IMAGES.length - 1 ? 0 : prev + 1));
@@ -138,7 +158,6 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {filteredData.map((tempat) => (
               <Link 
-                // PERBAIKAN: Mengarah ke Detail ([id]) sambil membawa nama dan jam buka resto
                 href={`/tempat/${tempat.id_tempat}?nama=${encodeURIComponent(tempat.nama_tempat)}&jam=${encodeURIComponent(tempat.jam_buka)}`} 
                 key={tempat.id_tempat} 
                 className="group flex flex-col bg-white rounded-2xl border border-gray-100 hover:shadow-xl transition-all duration-300 p-3"

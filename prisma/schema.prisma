@@ -67,6 +67,10 @@ model Tempat {
   kisaran_harga String   //
   id_kampus     String   //
 
+  // Kolom menu & foto tempat (upload file)
+  menu_text   String?  // Deskripsi teks menu andalan (opsional)
+  menu_gambar String?  // Path file foto menu, contoh: "/uploads/menu-xxx.jpg"
+
   // Relasi ke model lain
   kampus    Kampus            @relation(fields: [id_kampus], references: [id_kampus]) //
   fasilitas TempatFasilitas[] //
@@ -75,6 +79,21 @@ model Tempat {
   places    Place[]           //
 
   booking   Booking[]
+  mejas     Meja[]
+}
+
+// =============================================
+// Model baru: Meja (relasi ke Tempat)
+// =============================================
+model Meja {
+  id              String  @id @default(cuid())
+  nomor_meja      String  // Contoh: "Meja 01"
+  nama_lantai     String  // Contoh: "Lantai 1"
+  kapasitas_kursi Int     // Contoh: 4
+
+  tempatId  String
+  tempat    Tempat    @relation(fields: [tempatId], references: [id_tempat], onDelete: Cascade)
+  bookings  Booking[]
 }
 
 model TempatKategori {
@@ -130,6 +149,12 @@ model Booking {
   lantai     String?
   nomorMeja  String?
   status    String   @default("pending")
+
+  // Kolom baru: relasi ke Meja & jam mulai/selesai untuk anti-overlap
+  mejaId      String?
+  meja        Meja?   @relation(fields: [mejaId], references: [id], onDelete: SetNull)
+  jam_mulai   String? // Format "HH:mm", contoh: "10:00"
+  jam_selesai String? // Format "HH:mm", contoh: "12:00"
 
   // relasi ke tempat
   tempatId  String

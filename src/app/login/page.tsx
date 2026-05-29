@@ -83,12 +83,20 @@ export default function LoginPage() {
     }
   };
 
+  // =====================================================
+  // ROLE-BASED REDIRECT:
+  //   OWNER → /owner/dashboard
+  //   USER  → / (Homepage)
+  // =====================================================
   const processLoginSuccess = (isOk: boolean, data: any) => {
     if (isOk) {
       localStorage.setItem("user", JSON.stringify(data.user));
-      // PERBAIKAN: Semua pengguna (USER & OWNER) diarahkan ke Beranda
-      router.push("/");
-      setTimeout(() => window.location.reload(), 100);
+      const userRole: string = data.user?.role || "USER";
+      if (userRole === "OWNER") {
+        window.location.href = "/owner/dashboard";
+      } else {
+        window.location.href = "/";
+      }
     } else {
       setErr(prev => ({ ...prev, server: data.message || "Email atau password salah." }));
     }

@@ -87,10 +87,24 @@ export default function OwnerDashboard() {
   const [loadingBooking, setLoadingBooking] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"semua" | "pending" | "accepted" | "rejected">("semua");
 
+  // =====================================================
+  // ROLE-BASED GUARD:
+  //   Jika tidak login → redirect ke /login
+  //   Jika bukan OWNER (role USER biasa) → redirect ke /
+  // =====================================================
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
-    else router.push("/login");
+    if (!savedUser) {
+      router.replace("/login");
+      return;
+    }
+    const parsed = JSON.parse(savedUser);
+    if (parsed?.role !== "OWNER") {
+      // User biasa tidak boleh mengakses halaman owner
+      router.replace("/");
+      return;
+    }
+    setUser(parsed);
   }, [router]);
 
   useEffect(() => {
@@ -143,7 +157,11 @@ export default function OwnerDashboard() {
     }));
   };
 
-  // TAMBAH
+  // TAMBAH — tombol di sidebar sekarang mengarah ke halaman /owner/dashboard/tambah
+  const handleNavTambah = () => {
+    router.push("/owner/dashboard/tambah");
+  };
+
   const bukaModalTambah = () => {
     setForm(FORM_KOSONG);
     setModalTambah(true);
@@ -199,8 +217,6 @@ export default function OwnerDashboard() {
 
   setModalEdit(true);
 };
-
-  const finalLantai = (val: any) => val || "";
 
   const handleEdit = async () => {
     if (!form.nama_tempat || !form.alamat) return alert("Nama dan alamat wajib diisi!");
@@ -298,8 +314,9 @@ export default function OwnerDashboard() {
           >
             <Store size={20} /> Tempat Saya
           </button>
+          {/* Tombol Tambah Tempat → mengarah ke halaman /owner/dashboard/tambah */}
           <button
-            onClick={bukaModalTambah}
+            onClick={handleNavTambah}
             className="flex items-center gap-3 px-4 py-3 font-semibold rounded-lg text-gray-500 hover:bg-gray-100 transition"
           >
             <PlusCircle size={20} /> Tambah Tempat
@@ -324,7 +341,12 @@ export default function OwnerDashboard() {
         </nav>
         <nav>
         <div className="mt-auto pt-6 border-t border-gray-200">
-
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-4 py-3 font-semibold rounded-lg text-red-500 hover:bg-red-50 transition"
+          >
+            <LogOut size={20} /> Keluar
+          </button>
           </div>
         </nav>
       </aside>
@@ -368,7 +390,7 @@ export default function OwnerDashboard() {
                 <div className="text-center py-16 text-gray-400">
                   <Store size={48} className="mx-auto text-gray-300 mb-4" />
                   <p className="font-semibold">Belum ada tempat yang ditambahkan.</p>
-                  <button onClick={bukaModalTambah} className="mt-4 text-orange-600 font-bold hover:underline text-sm">
+                  <button onClick={handleNavTambah} className="mt-4 text-orange-600 font-bold hover:underline text-sm">
                     + Tambah sekarang
                   </button>
                 </div>
@@ -383,7 +405,6 @@ export default function OwnerDashboard() {
   .map((tempat) => (
   <div 
     key={tempat.id_tempat} 
-    // Saat Card diklik: Simpan data tempat & pindah tab ke statistik
     onClick={() => {
       setSelectedTempatForStats(tempat);
       setActiveNav("statistik");
@@ -545,7 +566,6 @@ export default function OwnerDashboard() {
       <h2 className="text-3xl font-extrabold text-gray-800">
         Laporan: {selectedTempatForStats?.nama_tempat || "Seluruh Tempat"} 📈
       </h2>
-      {/* Teks yang kamu minta ada di sini */}
       <p className="text-gray-600 mt-2 font-medium bg-orange-100 inline-block px-3 py-1 rounded-full text-sm">
         Total Pengeluaran dan Pemasukan Harian
       </p>
@@ -564,7 +584,6 @@ export default function OwnerDashboard() {
       </div>
     </div>
 
-    {/* Grafik Tetap Ada di Bawahnya */}
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96">
       <h3 className="text-lg font-bold mb-6 italic text-gray-700">Visual Arus Kas Harian</h3>
       <ResponsiveContainer width="100%" height="100%">
@@ -587,63 +606,6 @@ export default function OwnerDashboard() {
   </>
 )}
 </main>
-
-      {/* MODAL TAMBAH */}
-{modalTambah && (
-  <ModalWrapper onClose={() => setModalTambah(false)}>
-    <ModalHeader
-      title="Tambah Tempat Baru"
-      onClose={() => setModalTambah(false)}
-    />
-
-    <FormTempat
-      form={form}
-      onChange={handleFormChange}
-      position={position}
-      setPosition={setPosition}
-      
-    />
-    <div className="mt-4">
-  <label className="block text-sm font-semibold text-gray-700 mb-2">
-    Lokasi Tempat
-  </label>
-
-  <div className="h-64 rounded-xl overflow-hidden border">
-    <TempatMap
-      lat={position.lat}
-      lng={position.lng}
-      nama="Lokasi Tempat"
-      draggable={true}
-      onDrag={(lat, lng) => {
-        setPosition({ lat, lng });
-      }}
-    />
-  </div>
-
-  <p className="text-xs text-gray-500 mt-2">
-    Latitude: {position.lat.toFixed(5)} | Longitude:{" "}
-    {position.lng.toFixed(5)}
-  </p>
-</div>
-
-    <div className="flex justify-end gap-3 mt-6">
-      <button
-        onClick={() => setModalTambah(false)}
-        className="px-5 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition"
-      >
-        Batal
-      </button>
-
-      <button
-        onClick={handleTambah}
-        disabled={loadingSubmit}
-        className="px-5 py-2 rounded-lg bg-orange-600 text-white font-bold hover:bg-orange-700 transition disabled:opacity-60"
-      >
-        {loadingSubmit ? "Menyimpan..." : "Simpan Tempat"}
-      </button>
-    </div>
-  </ModalWrapper>
-)}
 
       {/* MODAL EDIT */}
       {modalEdit && (
@@ -786,23 +748,13 @@ function FormTempat({
           <input name="kisaran_harga" value={form.kisaran_harga} onChange={onChange} className={inputClass} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass}>Jumlah Meja</label>
-          <input name="jumlah_meja" type="number" value={form.jumlah_meja} onChange={onChange} className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Jumlah Lantai</label>
-          <input name="jumlah_lantai" type="number" value={form.jumlah_lantai} onChange={onChange} className={inputClass} />
-        </div>
-      </div>
       <div>
-      <label className={labelClass}>Foto Tempat (URL)</label>
+      <label className={labelClass}>Foto Tempat (URL atau path upload)</label>
       <input
         name="gambar"
         value={form.gambar}
         onChange={onChange}
-        placeholder="https://..."
+        placeholder="https://... atau /uploads/nama-file.jpg"
         className={inputClass}
       />
     </div>

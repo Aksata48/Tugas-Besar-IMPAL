@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Store, User, ArrowLeft, Mail, Lock, UserCircle, Coffee, ShieldCheck } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 
@@ -67,6 +66,19 @@ export default function RegisterPage() {
     setErr(prev => ({ ...prev, server: "" }));
   };
 
+  // =====================================================
+  // ROLE-BASED REDIRECT setelah registrasi:
+  //   OWNER → /owner/dashboard
+  //   USER  → / (Homepage)
+  // =====================================================
+  const redirectByRole = (userRole: string) => {
+    if (userRole === "OWNER") {
+      window.location.href = "/owner/dashboard";
+    } else {
+      window.location.href = "/";
+    }
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (err.email || err.password || err.username || err.confirmPassword) return;
@@ -83,15 +95,14 @@ export default function RegisterPage() {
 
       if (res.ok) {
         localStorage.setItem("user", JSON.stringify(data.user));
-        // PERBAIKAN: Hard redirect untuk mencegah nyangkut di halaman register
-        window.location.href = "/";
+        redirectByRole(data.user?.role || role);
       } else {
         setErr(prev => ({ ...prev, server: data.message || "Gagal mendaftar." }));
-        setIsLoading(false); // Matikan loading hanya jika gagal
+        setIsLoading(false);
       }
     } catch (error) {
       setErr(prev => ({ ...prev, server: "Gagal terhubung ke server." }));
-      setIsLoading(false); // Matikan loading hanya jika gagal
+      setIsLoading(false);
     }
   };
 
@@ -109,15 +120,14 @@ export default function RegisterPage() {
 
       if (res.ok) {
         localStorage.setItem("user", JSON.stringify(data.user));
-        // PERBAIKAN: Hard redirect
-        window.location.href = "/";
+        redirectByRole(data.user?.role || role);
       } else {
         setErr(prev => ({ ...prev, server: data.message || "Gagal mendaftar via Google." }));
-        setIsLoading(false); // Matikan loading hanya jika gagal
+        setIsLoading(false);
       }
     } catch (error) {
       setErr(prev => ({ ...prev, server: "Terjadi kesalahan saat verifikasi Google." }));
-      setIsLoading(false); // Matikan loading hanya jika gagal
+      setIsLoading(false);
     }
   };
 
