@@ -410,7 +410,11 @@ export default function TambahTempatOwner() {
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
+    const target = e.currentTarget as HTMLElement;
     setSelectedTableId(lantaiData[floorIdx].mejas[tableIdx].id);
+
+    let finalX = lantaiData[floorIdx].mejas[tableIdx].x;
+    let finalY = lantaiData[floorIdx].mejas[tableIdx].y;
     
     const onMouseMove = (moveEvent: MouseEvent) => {
       let x = ((moveEvent.clientX - rect.left) / rect.width) * 100;
@@ -420,6 +424,20 @@ export default function TambahTempatOwner() {
       x = Math.max(2, Math.min(92, x));
       y = Math.max(2, Math.min(90, y));
 
+      // Direct DOM update bypassing React renders for buttery smooth 120fps dragging
+      target.style.left = `${x}%`;
+      target.style.top = `${y}%`;
+
+      finalX = parseFloat(x.toFixed(1));
+      finalY = parseFloat(y.toFixed(1));
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      setActiveDrag(null);
+
+      // Commit once to React state at the end
       setLantaiData(prev => 
         prev.map((f, idx) => {
           if (idx !== floorIdx) return f;
@@ -429,19 +447,13 @@ export default function TambahTempatOwner() {
               if (mIdx !== tableIdx) return m;
               return {
                 ...m,
-                x: parseFloat(x.toFixed(1)),
-                y: parseFloat(y.toFixed(1))
+                x: finalX,
+                y: finalY
               };
             })
           };
         })
       );
-    };
-
-    const onMouseUp = () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      setActiveDrag(null);
     };
 
     setActiveDrag({ floorIdx, tableIdx });
@@ -454,7 +466,11 @@ export default function TambahTempatOwner() {
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
+    const target = e.currentTarget as HTMLElement;
     setSelectedTableId(lantaiData[floorIdx].mejas[tableIdx].id);
+
+    let finalX = lantaiData[floorIdx].mejas[tableIdx].x;
+    let finalY = lantaiData[floorIdx].mejas[tableIdx].y;
     
     const onTouchMove = (moveEvent: TouchEvent) => {
       const touch = moveEvent.touches[0];
@@ -464,6 +480,20 @@ export default function TambahTempatOwner() {
       x = Math.max(2, Math.min(92, x));
       y = Math.max(2, Math.min(90, y));
 
+      // Direct DOM update bypassing React renders for buttery smooth 120fps touch dragging
+      target.style.left = `${x}%`;
+      target.style.top = `${y}%`;
+
+      finalX = parseFloat(x.toFixed(1));
+      finalY = parseFloat(y.toFixed(1));
+    };
+
+    const onTouchEnd = () => {
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      setActiveDrag(null);
+
+      // Commit once to React state at the end
       setLantaiData(prev => 
         prev.map((f, idx) => {
           if (idx !== floorIdx) return f;
@@ -473,19 +503,13 @@ export default function TambahTempatOwner() {
               if (mIdx !== tableIdx) return m;
               return {
                 ...m,
-                x: parseFloat(x.toFixed(1)),
-                y: parseFloat(y.toFixed(1))
+                x: finalX,
+                y: finalY
               };
             })
           };
         })
       );
-    };
-
-    const onTouchEnd = () => {
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-      setActiveDrag(null);
     };
 
     setActiveDrag({ floorIdx, tableIdx });
@@ -1081,9 +1105,13 @@ export default function TambahTempatOwner() {
                                   top: `${meja.y}%`, 
                                   transform: "translate(-50%, -50%)" 
                                 }}
-                                className={`absolute w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center cursor-move transition-all duration-150 select-none shadow-md ${
+                                className={`absolute w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center cursor-move select-none shadow-md ${
                                   isSelected ? theme.tableActiveStyle : theme.tableStyle
-                                } ${isDragging ? "opacity-80 border-dashed shadow-2xl cursor-grabbing" : ""}`}
+                                } ${
+                                  isDragging 
+                                    ? "opacity-80 border-dashed shadow-2xl cursor-grabbing scale-105 z-20" 
+                                    : "transition-all duration-200"
+                                }`}
                               >
                                 <span className="text-[10px] font-black uppercase tracking-tighter leading-none">{meja.nomorMeja.replace("Meja ", "M")}</span>
                                 <span className="text-[9px] opacity-80 mt-0.5 leading-none">👤{meja.kapasitas}</span>
