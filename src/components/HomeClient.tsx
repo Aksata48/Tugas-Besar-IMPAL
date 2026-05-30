@@ -168,7 +168,7 @@ export default function HomeClient({ tempatList }: { tempatList: any[] }) {
                       {tempat.kategori[0]?.kategori.nama_kategori || 'Nongki'}
                     </span>
                   </div>
-                  <Image src={`https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=500&auto=format&fit=crop`} alt={tempat.nama_tempat} fill className="object-cover group-hover:scale-110 transition duration-700 ease-in-out" />
+                  <Image src={tempat.gambar || `https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=500&auto=format&fit=crop`} alt={tempat.nama_tempat} fill className="object-cover group-hover:scale-110 transition duration-700 ease-in-out" />
                 </div>
                 <div className="space-y-2 flex-grow px-1">
                   <div className="flex justify-between items-start gap-2">

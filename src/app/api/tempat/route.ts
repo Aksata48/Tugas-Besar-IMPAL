@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
       menu_text,
       menu_gambar,
       lantaiData, // array konfigurasi meja per lantai
+      kategori, // Ambil kategori dari form input
     } = body;
 
     // --- Validasi wajib isi ---
@@ -106,6 +107,21 @@ export async function POST(request: NextRequest) {
       waktuTutup = parts[1]?.trim() || "22:00";
     }
 
+    // --- Pemetaan Kategori dari Form ke ID Kategori Database ---
+    let idKategori = "";
+    if (kategori) {
+      const lowerKat = kategori.toLowerCase();
+      if (lowerKat === "cafe" || lowerKat === "kafe") {
+        idKategori = "KAT-1";
+      } else if (lowerKat === "warkop") {
+        idKategori = "KAT-2";
+      } else if (lowerKat === "resto" || lowerKat === "restoran") {
+        idKategori = "KAT-3";
+      } else if (lowerKat === "coworking" || lowerKat === "workspace") {
+        idKategori = "KAT-4";
+      }
+    }
+
     // --- Buat record Tempat ---
     const tempatBaru = await prisma.tempat.create({
       data: {
@@ -122,6 +138,14 @@ export async function POST(request: NextRequest) {
         gambar: gambar || null,
         menu_text: menu_text || null,
         menu_gambar: menu_gambar || null,
+        // Buat relasi TempatKategori jika kategori valid terdeteksi
+        ...(idKategori ? {
+          kategori: {
+            create: {
+              id_kategori: idKategori,
+            }
+          }
+        } : {}),
       },
     });
 

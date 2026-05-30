@@ -25,6 +25,7 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
       kategori: {
         include: { kategori: true },
       },
+      places: true, // Ambil data ulasan/review untuk rating
     },
   });
 
@@ -32,7 +33,7 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
     notFound();
   }
 
-  const reviews = (tempat as any).places || [];
+  const reviews = tempat.places || [];
   const hasReviews = reviews.length > 0;
   const displayRating = hasReviews
     ? (reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / reviews.length).toFixed(1)
@@ -50,7 +51,7 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
       {/* HEADER / GAMBAR UTAMA */}
       <div className="relative w-full h-[400px] md:h-[500px]">
         <Image
-          src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=1200&auto=format&fit=crop"
+          src={tempat.gambar || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=1200&auto=format&fit=crop"}
           alt={tempat.nama_tempat}
           fill
           priority
