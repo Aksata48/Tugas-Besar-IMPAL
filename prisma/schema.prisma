@@ -161,6 +161,12 @@ model Booking {
   jam_mulai   String? // Format "HH:mm", contoh: "10:00"
   jam_selesai String? // Format "HH:mm", contoh: "12:00"
 
+  // Kolom baru untuk pembayaran DP via Midtrans QRIS
+  total_harga  Float?  @default(0)
+  dp_harga     Float?  @default(0)
+  midtrans_id  String? // Transaction ID dari Midtrans
+  midtrans_qr  String? // URL gambar QR code dari Midtrans
+
   // relasi ke tempat
   tempatId  String
   tempat    Tempat  @relation(fields: [tempatId], references: [id_tempat], onDelete: Cascade)

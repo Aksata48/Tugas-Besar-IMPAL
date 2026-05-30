@@ -31,17 +31,19 @@ export default function LeafletMap({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const onDragRef = useRef(onDrag);
 
+  // Keep onDrag updated in a ref to avoid resetting map event listeners when it changes
+  useEffect(() => {
+    onDragRef.current = onDrag;
+  }, [onDrag]);
+
+  // 1. Map Initialization (Runs once on mount)
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Kalau sudah ada instance sebelumnya, hapus dulu
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
-
-    // Buat map baru
+    // Initialize map
     const map = L.map(containerRef.current).setView([lat, lng], 15);
     mapRef.current = map;
 
@@ -49,27 +51,52 @@ export default function LeafletMap({
       attribution: "© OpenStreetMap contributors",
     }).addTo(map);
 
+    // Create marker
     const marker = L.marker([lat, lng], {
       icon: redIcon,
       draggable,
     }).addTo(map);
+    markerRef.current = marker;
 
     marker.bindPopup(`<b>${nama}</b>`).openPopup();
 
-    if (draggable && onDrag) {
+    if (draggable) {
       marker.on("dragend", () => {
         const pos = marker.getLatLng();
-
-        onDrag(pos.lat, pos.lng);
+        if (onDragRef.current) {
+          onDragRef.current(pos.lat, pos.lng);
+        }
       });
     }
 
-    // Cleanup saat komponen unmount
+    // Cleanup on unmount
     return () => {
       map.remove();
       mapRef.current = null;
+      markerRef.current = null;
     };
-  }, [lat, lng, nama, draggable, onDrag]);
+  }, [draggable]); // Only reinitialize map if draggable prop itself changes
+
+  // 2. Smoothly Update Map Center and Marker Position when coordinates or name update from parent
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = markerRef.current;
+
+    if (map && marker) {
+      const currentCenter = map.getCenter();
+      // Pan smoothly only if coordinates are significantly different (more than 0.0001 degrees)
+      if (Math.abs(currentCenter.lat - lat) > 0.0001 || Math.abs(currentCenter.lng - lng) > 0.0001) {
+        map.setView([lat, lng], 15, { animate: true, duration: 1.0 });
+      }
+
+      const currentMarkerPos = marker.getLatLng();
+      if (Math.abs(currentMarkerPos.lat - lat) > 0.0001 || Math.abs(currentMarkerPos.lng - lng) > 0.0001) {
+        marker.setLatLng([lat, lng]);
+      }
+
+      marker.setPopupContent(`<b>${nama}</b>`);
+    }
+  }, [lat, lng, nama]);
 
   return (
     <div

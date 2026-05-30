@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Store, PlusCircle, MapPin, Edit, Trash2, LogOut,
-  X, Clock, Phone, CalendarCheck, CheckCircle, XCircle, AlertCircle, Wallet, ArrowLeft
+  X, Clock, Phone, CalendarCheck, CheckCircle, XCircle, AlertCircle, Wallet, ArrowLeft, Plus,
+  Coffee, Beer, Utensils, Laptop, GraduationCap, Image as ImageIcon, Upload, Loader2, CheckCircle as CheckCircleIcon
 } from "lucide-react";
+import { TOP_20_KAMPUS } from "./tambah/page";
 
 // ===== 1. IMPORT RECHARTS UNTUK GRAFIK =====
 import {
@@ -24,6 +26,18 @@ interface Tempat {
   jumlah_lantai?: string | number;
   id_kampus: string;
   gambar?: string;
+  menu_text?: string;
+  menu_gambar?: string;
+  fasilitas?: Array<{
+    id_tempat: string;
+    id_fasilitas: string;
+    fasilitas: { id_fasilitas: string; nama_fasilitas: string };
+  }>;
+  kategori?: Array<{
+    id_tempat: string;
+    id_kategori: string;
+    kategori: { id_kategori: string; nama_kategori: string };
+  }>;
 
   latitude?: number;
   longitude?: number;
@@ -35,8 +49,11 @@ interface Booking {
   tanggal: string;
   jam: string;
   nomor: string;
-  status: "pending" | "accepted" | "rejected";
-  tempat?: { nama_tempat: string };
+  status: "pending" | "pending_payment" | "accepted" | "rejected";
+  tempat?: { id_tempat?: string; nama_tempat: string };
+  total_harga?: number;
+  dp_harga?: number;
+  catatan?: string;
 }
 
 const FORM_KOSONG = {
@@ -48,6 +65,61 @@ const FORM_KOSONG = {
   jumlah_lantai: "" as string | number,
   id_kampus: "",
   gambar: "",
+  kategori: "",
+  waktu_buka: "",
+  waktu_tutup: "",
+};
+
+const parsePriceRange = (rangeStr: string) => {
+  if (!rangeStr) return { min: "", max: "" };
+  
+  // Clean dots, spaces, currency, and extract two numbers separated by "-"
+  const cleanStr = rangeStr.replace(/Rp/g, "").replace(/\./g, "").trim();
+  const parts = cleanStr.split("-");
+  if (parts.length === 2) {
+    const minVal = parts[0].replace(/\D/g, "");
+    const maxVal = parts[1].replace(/\D/g, "");
+    if (minVal && maxVal) {
+      return { min: minVal, max: maxVal };
+    }
+  }
+  
+  const numbers = rangeStr.match(/\d+/g);
+  if (numbers && numbers.length >= 2) {
+    return { min: numbers[0], max: numbers[1] };
+  }
+  
+  return { min: "", max: "" };
+};
+
+const parseMenuItems = (menuStr?: string) => {
+  if (!menuStr) return [{ name: "", description: "", price: "" }];
+  
+  if (menuStr.trim().startsWith("[")) {
+    try {
+      const parsed = JSON.parse(menuStr);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item: any) => ({
+          name: item.name || "",
+          description: item.description || "",
+          price: (item.price || "").toString()
+        }));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  
+  const lines = menuStr.split(/[,\n]/).map(x => x.trim()).filter(Boolean);
+  if (lines.length > 0) {
+    return lines.map(line => ({
+      name: line,
+      description: "",
+      price: ""
+    }));
+  }
+  
+  return [{ name: "", description: "", price: "" }];
 };
 
 // ===== 2. CONTOH DATA HARIAN UNTUK GRAFIK =====
@@ -82,10 +154,19 @@ export default function OwnerDashboard() {
   lng: 107.6191,
 });
 
+  const [hargaMin, setHargaMin] = useState("");
+  const [hargaMax, setHargaMax] = useState("");
+  const [menuItems, setMenuItems] = useState<Array<{ name: string; description: string; price: string }>>([
+    { name: "", description: "", price: "" }
+  ]);
+  const [fasilitas, setFasilitas] = useState<string[]>([]);
+  const [campusSearch, setCampusSearch] = useState("");
+  const [isCampusDropdownOpen, setIsCampusDropdownOpen] = useState(false);
+
   // State Booking
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loadingBooking, setLoadingBooking] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<"semua" | "pending" | "accepted" | "rejected">("semua");
+  const [filterStatus, setFilterStatus] = useState<"semua" | "pending" | "pending_payment" | "accepted" | "rejected">("semua");
 
   // =====================================================
   // ROLE-BASED GUARD:
@@ -197,40 +278,99 @@ export default function OwnerDashboard() {
 
   // EDIT
   const bukaModalEdit = (tempat: Tempat) => {
-  setTempatDipilih(tempat);
+    setTempatDipilih(tempat);
 
-  setForm({
-    nama_tempat: tempat.nama_tempat,
-    alamat: tempat.alamat,
-    jam_buka: tempat.jam_buka,
-    kisaran_harga: tempat.kisaran_harga,
-    jumlah_meja: tempat.jumlah_meja || "",
-    jumlah_lantai: tempat.jumlah_lantai || "",
-    id_kampus: tempat.id_kampus || "",
-    gambar: tempat.gambar || "",
-  });
+    const parsedPrice = parsePriceRange(tempat.kisaran_harga);
+    setHargaMin(parsedPrice.min);
+    setHargaMax(parsedPrice.max);
 
-  setPosition({
-    lat: tempat.latitude || -6.9175,
-    lng: tempat.longitude || 107.6191,
-  });
+    setMenuItems(parseMenuItems(tempat.menu_text));
 
-  setModalEdit(true);
-};
+    // Ambil fasilitas terpilih jika ada
+    if (Array.isArray(tempat.fasilitas)) {
+      setFasilitas(tempat.fasilitas.map((f: any) => f.fasilitas.nama_fasilitas));
+    } else {
+      setFasilitas([]);
+    }
+
+    // Ambil kategori terpilih jika ada
+    let kategoriValue = "";
+    if (Array.isArray(tempat.kategori) && tempat.kategori.length > 0) {
+      const katName = tempat.kategori[0]?.kategori?.nama_kategori || "";
+      if (katName.toLowerCase().includes("cafe") || katName.toLowerCase().includes("kafe")) kategoriValue = "Cafe";
+      else if (katName.toLowerCase().includes("warkop")) kategoriValue = "Warkop";
+      else if (katName.toLowerCase().includes("resto")) kategoriValue = "Resto";
+      else if (katName.toLowerCase().includes("coworking") || katName.toLowerCase().includes("workspace")) kategoriValue = "Coworking";
+      else kategoriValue = katName;
+    }
+
+    // Parse jam_buka "08:00 - 22:00" ke waktu_buka dan waktu_tutup
+    let wBuka = "";
+    let wTutup = "";
+    if (tempat.jam_buka && tempat.jam_buka.includes("-")) {
+      const parts = tempat.jam_buka.split("-");
+      wBuka = parts[0]?.trim() || "";
+      wTutup = parts[1]?.trim() || "";
+    }
+
+    setForm({
+      nama_tempat: tempat.nama_tempat,
+      alamat: tempat.alamat,
+      jam_buka: tempat.jam_buka,
+      kisaran_harga: tempat.kisaran_harga,
+      jumlah_meja: tempat.jumlah_meja || "",
+      jumlah_lantai: tempat.jumlah_lantai || "",
+      id_kampus: tempat.id_kampus || "",
+      gambar: tempat.gambar || "",
+      kategori: kategoriValue,
+      waktu_buka: wBuka,
+      waktu_tutup: wTutup,
+    });
+
+    setPosition({
+      lat: tempat.latitude || -6.9175,
+      lng: tempat.longitude || 107.6191,
+    });
+
+    setCampusSearch("");
+    setIsCampusDropdownOpen(false);
+    setModalEdit(true);
+  };
 
   const handleEdit = async () => {
     if (!form.nama_tempat || !form.alamat) return alert("Nama dan alamat wajib diisi!");
+    if (!hargaMin || !hargaMax) return alert("Harga minimal dan maksimal wajib diisi!");
+    if (Number(hargaMin) > Number(hargaMax)) return alert("Harga minimal tidak boleh lebih besar dari harga maksimal!");
+
+    const formattedPriceRange = `Rp ${Number(hargaMin).toLocaleString("id-ID")} - Rp ${Number(hargaMax).toLocaleString("id-ID")}`;
+
+    const validItems = menuItems.filter(item => item.name.trim() !== "");
+    const formattedMenuText = validItems.length > 0 ? JSON.stringify(validItems.map(item => ({
+      name: item.name.trim(),
+      description: item.description.trim(),
+      price: Number(item.price) || 0
+    }))) : "";
+
     setLoadingSubmit(true);
     try {
       const res = await fetch("/api/tempat", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id_tempat: tempatDipilih?.id_tempat,
-        ...form,
-        latitude: position.lat,
-        longitude: position.lng,
-      }),      });
+        body: JSON.stringify({
+          id_tempat: tempatDipilih?.id_tempat,
+          nama_tempat: form.nama_tempat,
+          alamat: form.alamat,
+          jam_buka: form.waktu_buka && form.waktu_tutup ? `${form.waktu_buka} - ${form.waktu_tutup}` : form.jam_buka,
+          kisaran_harga: formattedPriceRange,
+          menu_text: formattedMenuText || null,
+          fasilitas: fasilitas,
+          kategori: form.kategori,
+          gambar: form.gambar,
+          id_kampus: form.id_kampus,
+          latitude: position.lat,
+          longitude: position.lng,
+        }),
+      });
       const data = await res.json();
       if (data.success) {
         setTempatList((prev) =>
@@ -271,7 +411,7 @@ export default function OwnerDashboard() {
   };
 
   // UPDATE STATUS BOOKING
-  const handleUpdateStatus = async (id: string, status: "accepted" | "rejected") => {
+  const handleUpdateStatus = async (id: string, status: "accepted" | "rejected" | "pending_payment") => {
     try {
       const res = await fetch("/api/booking", {
         method: "PATCH",
@@ -296,16 +436,11 @@ export default function OwnerDashboard() {
   if (!user) return <div className="min-h-screen flex items-center justify-center">Memuat...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pt-16">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
 
       {/* SIDEBAR */}
       <aside className="w-full md:w-64 bg-white border-r border-gray-200 px-6 py-8 flex flex-col">
-        <div className="flex items-center gap-2 mb-10">
-          <div className="w-8 h-8 bg-orange-600 text-white font-bold flex items-center justify-center rounded-md">N</div>
-          <h1 className="text-xl font-extrabold text-gray-800 tracking-tight">
-            Owner<span className="text-orange-600">Panel</span>
-          </h1>
-        </div>
+
 
         <nav className="flex flex-col gap-2 flex-grow">
           <button
@@ -446,7 +581,7 @@ export default function OwnerDashboard() {
     {/* Tombol aksi diproteksi e.stopPropagation() agar klik tidak tembus ke card */}
     <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
       <button 
-        onClick={() => bukaModalEdit(tempat)} 
+        onClick={() => router.push(`/owner/dashboard/edit/${tempat.id_tempat}`)} 
         className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition"
       >
         <Edit size={18} />
@@ -475,13 +610,13 @@ export default function OwnerDashboard() {
             </header>
 
             <div className="flex gap-2 mb-6 flex-wrap">
-              {(["semua", "pending", "accepted", "rejected"] as const).map((s) => (
+              {(["semua", "pending", "pending_payment", "accepted", "rejected"] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => setFilterStatus(s)}
                   className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition ${filterStatus === s ? "bg-orange-600 text-white border-orange-600" : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"}`}
                 >
-                  {s === "semua" ? "Semua" : s === "pending" ? "Menunggu" : s === "accepted" ? "Diterima" : "Ditolak"}
+                  {s === "semua" ? "Semua" : s === "pending" ? "Menunggu" : s === "pending_payment" ? "Menunggu DP" : s === "accepted" ? "Diterima" : "Ditolak"}
                   {s === "pending" && badgeCount > 0 && (
                     <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{badgeCount}</span>
                   )}
@@ -512,7 +647,7 @@ export default function OwnerDashboard() {
               ) : (
                 <div className="grid gap-4">
                   {bookingFiltered.map((booking) => (
-                    <div key={booking.id} className={`p-4 border rounded-xl transition ${booking.status === "pending" ? "border-yellow-200 bg-yellow-50" : booking.status === "accepted" ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
+                    <div key={booking.id} className={`p-4 border rounded-xl transition ${booking.status === "pending" ? "border-yellow-200 bg-yellow-50" : booking.status === "pending_payment" ? "border-orange-200 bg-orange-50" : booking.status === "accepted" ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
                       <div className="flex justify-between items-start gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -532,8 +667,8 @@ export default function OwnerDashboard() {
                         </div>
                         {booking.status === "pending" && (
                           <div className="flex gap-2 shrink-0">
-                            <button onClick={() => handleUpdateStatus(booking.id, "accepted")} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition">
-                              <CheckCircle size={16} /> Terima
+                            <button onClick={() => handleUpdateStatus(booking.id, "pending_payment")} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition">
+                              <CheckCircle size={16} /> Acc & Minta DP
                             </button>
                             <button onClick={() => handleUpdateStatus(booking.id, "rejected")} className="flex items-center gap-1.5 px-4 py-2 bg-red-500 text-white text-sm font-bold rounded-lg hover:bg-red-600 transition">
                               <XCircle size={16} /> Tolak
@@ -550,103 +685,285 @@ export default function OwnerDashboard() {
         )}
 
         {/* TAB: STATISTIK KEUANGAN */}
-        {activeNav === "statistik" && (
-  <>
-    <header className="mb-8">
-      <button 
-        onClick={() => {
-          setSelectedTempatForStats(null);
-          setActiveNav("daftar");
-        }}
-        className="flex items-center gap-2 text-orange-600 font-bold text-sm mb-4 hover:underline transition"
-      >
-        <ArrowLeft size={16} /> Kembali ke Daftar Tempat
-      </button>
-      
-      <h2 className="text-3xl font-extrabold text-gray-800">
-        Laporan: {selectedTempatForStats?.nama_tempat || "Seluruh Tempat"} 📈
-      </h2>
-      <p className="text-gray-600 mt-2 font-medium bg-orange-100 inline-block px-3 py-1 rounded-full text-sm">
-        Total Pengeluaran dan Pemasukan Harian
-      </p>
-    </header>
+        {activeNav === "statistik" && (() => {
+          // Filter bookings based on selected tempat if any
+          const filteredBookings = bookings.filter((b) => {
+            if (!selectedTempatForStats) return true;
+            return b.tempat?.id_tempat === selectedTempatForStats.id_tempat;
+          });
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-      <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
-        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Total Pemasukan</p>
-        <h4 className="text-2xl font-black text-green-600">Rp 2.600.000</h4>
-        <p className="text-[10px] text-gray-400 mt-2 italic">*Data akumulasi harian</p>
-      </div>
-      <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
-        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Total Pengeluaran</p>
-        <h4 className="text-2xl font-black text-red-600">Rp 1.350.000</h4>
-        <p className="text-[10px] text-gray-400 mt-2 italic">*Data akumulasi harian</p>
-      </div>
-    </div>
+          // Only consider accepted or pending_payment bookings as incoming finance
+          const successfulBookings = filteredBookings.filter(
+            (b) => b.status === "accepted" || b.status === "pending_payment"
+          );
 
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96">
-      <h3 className="text-lg font-bold mb-6 italic text-gray-700">Visual Arus Kas Harian</h3>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={dataKeuangan}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-          <XAxis dataKey="tgl" tick={{fontSize: 12}} />
-          <YAxis tickFormatter={(value) => `Rp${value/1000}k`} tick={{fontSize: 12}} />
-          <Tooltip 
-  formatter={(value: any) => 
-    value ? `Rp ${Number(value).toLocaleString()}` : "Rp 0"
-  }
-  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-/>
-          <Legend />
-          <Line type="monotone" dataKey="pemasukan" name="Pemasukan" stroke="#16a34a" strokeWidth={3} dot={{ r: 4 }} />
-          <Line type="monotone" dataKey="pengeluaran" name="Pengeluaran" stroke="#dc2626" strokeWidth={3} dot={{ r: 4 }} />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  </>
-)}
+          // Helper to get real total price from total_harga, or parse from catatan text, or fallback to dp_harga * 2
+          const getRealTotalHarga = (b: Booking) => {
+            if (b.total_harga && b.total_harga > 0) return b.total_harga;
+            if (b.catatan) {
+              const match = b.catatan.match(/Total Menu:\s*Rp\s*([\d,.]+)/i);
+              if (match) {
+                const cleanVal = match[1].replace(/[\.,]/g, "");
+                const parsed = parseInt(cleanVal);
+                if (!isNaN(parsed)) return parsed;
+              }
+            }
+            return (b.dp_harga || 10000) * 2;
+          };
+
+          // Sum of pre-order total amount and DP amount
+          const totalOrderValue = successfulBookings.reduce((sum, b) => sum + getRealTotalHarga(b), 0);
+          const totalDpReceived = successfulBookings.reduce((sum, b) => sum + (b.dp_harga || 0), 0);
+          
+          // Cost of goods sold (COGS) & operation is estimated at 35% of total order value
+          const estimatedExpenses = Math.round(totalOrderValue * 0.35);
+          const netProfit = totalOrderValue - estimatedExpenses;
+
+          // Process harian untuk chart
+          const dailyMap: { [key: string]: { pemasukan: number; pengeluaran: number; booking: number } } = {};
+          
+          successfulBookings.forEach((b) => {
+            if (!b.tanggal) return;
+            const dateObj = new Date(b.tanggal);
+            const dateStr = dateObj.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+            const amount = getRealTotalHarga(b);
+            const expense = Math.round(amount * 0.35);
+            
+            if (!dailyMap[dateStr]) {
+              dailyMap[dateStr] = { pemasukan: 0, pengeluaran: 0, booking: 0 };
+            }
+            dailyMap[dateStr].pemasukan += amount;
+            dailyMap[dateStr].pengeluaran += expense;
+            dailyMap[dateStr].booking += 1;
+          });
+
+          let chartData = Object.entries(dailyMap).map(([tgl, val]) => ({
+            tgl,
+            pemasukan: val.pemasukan,
+            pengeluaran: val.pengeluaran,
+            booking: val.booking,
+          }));
+
+          // Only fallback to demo data if there are absolutely no real accepted/pending_payment bookings in the entire database
+          const hasAnyRealBookingsInDb = bookings.some(
+            (b) => b.status === "accepted" || b.status === "pending_payment"
+          );
+          
+          const hasRealData = hasAnyRealBookingsInDb;
+          const selectedPlaceHasData = chartData.length > 0;
+
+          if (!hasRealData) {
+            chartData = dataKeuangan;
+          } else if (selectedPlaceHasData) {
+            // Sort chronologically
+            chartData.sort((a, b) => {
+              const parseDate = (dStr: string) => {
+                const parts = dStr.split(" ");
+                const day = parseInt(parts[0]);
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+                const monthIdx = monthNames.indexOf(parts[1]) || 0;
+                return new Date(2026, monthIdx, day).getTime();
+              };
+              return parseDate(a.tgl) - parseDate(b.tgl);
+            });
+          } else {
+            // If the database has real bookings, but not for this specific selected place, show empty chart data
+            chartData = [];
+          }
+
+          const finalPemasukan = hasRealData ? totalOrderValue : 2600000;
+          const finalPengeluaran = hasRealData ? estimatedExpenses : 1350000;
+          const finalNetProfit = hasRealData ? netProfit : (2600000 - 1350000);
+          const finalDp = hasRealData ? totalDpReceived : 1300000;
+
+          return (
+            <>
+              <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <button 
+                    onClick={() => {
+                      setSelectedTempatForStats(null);
+                      setActiveNav("daftar");
+                    }}
+                    className="flex items-center gap-2 text-orange-600 font-bold text-sm mb-2 hover:text-orange-700 transition"
+                  >
+                    <ArrowLeft size={16} /> Kembali ke Daftar Tempat
+                  </button>
+                  <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">
+                    Laporan: {selectedTempatForStats?.nama_tempat || "Seluruh Tempat"} 📈
+                  </h2>
+                  <p className="text-gray-500 mt-1 text-sm">
+                    Laporan keuangan dan statistik pemesanan meja real-time.
+                  </p>
+                </div>
+                {!hasRealData && (
+                  <span className="self-start md:self-auto bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full border border-amber-200">
+                    💡 Menampilkan Data Demo (Belum ada pesanan disetujui)
+                  </span>
+                )}
+              </header>
+
+              {/* STAT CARDS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* PEMASUKAN */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Gross Revenue (Pre-Order)</p>
+                    <span className="p-2 bg-green-50 text-green-600 rounded-xl">
+                      <Wallet size={18} />
+                    </span>
+                  </div>
+                  <h4 className="text-2xl font-black text-slate-800">Rp {finalPemasukan.toLocaleString("id-ID")}</h4>
+                  <div className="flex items-center gap-1 mt-2 text-xs text-green-600 font-semibold">
+                    <span>Active Order Value</span>
+                  </div>
+                </div>
+
+                {/* DP DITERIMA */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">DP QRIS Diterima (50%)</p>
+                    <span className="p-2 bg-orange-50 text-orange-600 rounded-xl">
+                      <CheckCircle size={18} />
+                    </span>
+                  </div>
+                  <h4 className="text-2xl font-black text-slate-800">Rp {finalDp.toLocaleString("id-ID")}</h4>
+                  <div className="flex items-center gap-1 mt-2 text-xs text-orange-600 font-semibold">
+                    <span>Dana Masuk Terjamin</span>
+                  </div>
+                </div>
+
+                {/* ESTIMASI PENGELUARAN */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Estimasi Pengeluaran</p>
+                    <span className="p-2 bg-red-50 text-red-600 rounded-xl">
+                      <XCircle size={18} />
+                    </span>
+                  </div>
+                  <h4 className="text-2xl font-black text-slate-800">Rp {finalPengeluaran.toLocaleString("id-ID")}</h4>
+                  <div className="flex items-center gap-1 mt-2 text-xs text-red-600 font-semibold">
+                    <span>~35% Biaya Operasional & HPP</span>
+                  </div>
+                </div>
+
+                {/* NET PROFIT */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition bg-gradient-to-br from-orange-50 to-white">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-xs font-bold text-orange-700 uppercase tracking-wider">Proyeksi Laba Bersih</p>
+                    <span className="p-2 bg-orange-600 text-white rounded-xl">
+                      <Store size={18} />
+                    </span>
+                  </div>
+                  <h4 className="text-2xl font-black text-orange-600">Rp {finalNetProfit.toLocaleString("id-ID")}</h4>
+                  <div className="flex items-center gap-1 mt-2 text-xs text-orange-600 font-semibold">
+                    <span>Laba Bersih Setelah COGS</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CHART & DETAILS GRID */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                {/* CHART CONTAINER */}
+                <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Visual Arus Kas Harian</h3>
+                    <p className="text-xs text-gray-400 mb-6">Grafik fluktuasi pemasukan gross dan estimasi biaya harian.</p>
+                  </div>
+                  <div className="h-80 w-full flex items-center justify-center relative">
+                    {chartData.length === 0 ? (
+                      <div className="text-center text-gray-400 p-6">
+                        <Store size={48} className="mx-auto text-gray-300 mb-3" />
+                        <p className="font-bold text-sm">Belum Ada Transaksi Pemesanan</p>
+                        <p className="text-[11px] text-gray-400 mt-1">Pemasukan untuk tempat ini masih bernilai Rp 0.</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                          <XAxis dataKey="tgl" tick={{fontSize: 11, fill: '#94a3b8'}} />
+                          <YAxis tickFormatter={(value) => `Rp${value/1000}k`} tick={{fontSize: 11, fill: '#94a3b8'}} />
+                          <Tooltip 
+                            formatter={(value: any) => 
+                              value ? `Rp ${Number(value).toLocaleString("id-ID")}` : "Rp 0"
+                            }
+                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontFamily: 'sans-serif' }}
+                          />
+                          <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                          <Line type="monotone" dataKey="pemasukan" name="Gross Pemasukan" stroke="#e04f16" strokeWidth={3.5} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                          <Line type="monotone" dataKey="pengeluaran" name="Est. Pengeluaran" stroke="#ef4444" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+
+                {/* DETAILED STATS INFO */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Analisis Singkat</h3>
+                    <p className="text-xs text-gray-400 mb-6">Ringkasan performa tempat terpilih.</p>
+                  </div>
+                  <div className="space-y-4 flex-grow">
+                    <div className="flex justify-between items-center p-3.5 bg-slate-50 rounded-xl">
+                      <span className="text-sm font-semibold text-gray-600">Total Booking Sukses</span>
+                      <span className="text-sm font-bold text-slate-800">{hasRealData ? successfulBookings.length : 35} Pesanan</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3.5 bg-slate-50 rounded-xl">
+                      <span className="text-sm font-semibold text-gray-600">Rata-rata Transaksi (AOV)</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        Rp {Math.round(hasRealData ? (totalOrderValue / (successfulBookings.length || 1)) : 74285).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3.5 bg-slate-50 rounded-xl">
+                      <span className="text-sm font-semibold text-gray-600">Target Bulanan Terpenuhi</span>
+                      <span className="text-sm font-bold text-green-600">
+                        {hasRealData ? Math.min(100, Math.round((totalOrderValue / 10000000) * 100)) : 26}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-gray-50 text-[11px] text-gray-400 leading-relaxed">
+                    💡 *Pemasukan dihitung dari pesanan berstatus &apos;Diterima&apos; &amp; &apos;Menunggu DP&apos;. Pengeluaran diestimasi 35% untuk HPP bahan baku menu pre-order.
+                  </div>
+                </div>
+              </div>
+
+              {/* TRANSACTIONS TABLE */}
+              {hasRealData && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-hidden">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">Rincian Transaksi Pendapatan</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                          <th className="pb-3 font-semibold">Pelanggan</th>
+                          <th className="pb-3 font-semibold">Tempat</th>
+                          <th className="pb-3 font-semibold">Tanggal</th>
+                          <th className="pb-3 font-semibold">DP Terbayar</th>
+                          <th className="pb-3 font-semibold text-right">Nilai Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {successfulBookings.slice(0, 5).map((b) => (
+                          <tr key={b.id} className="text-sm text-gray-600 hover:bg-slate-50/50 transition">
+                            <td className="py-3 font-semibold text-slate-800">{b.nama}</td>
+                            <td className="py-3">{b.tempat?.nama_tempat}</td>
+                            <td className="py-3">{new Date(b.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                            <td className="py-3 text-orange-600 font-bold">Rp {(b.dp_harga || 0).toLocaleString("id-ID")}</td>
+                            <td className="py-3 text-right font-black text-slate-800">Rp {getRealTotalHarga(b).toLocaleString("id-ID")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
 </main>
 
-      {/* MODAL EDIT */}
-      {modalEdit && (
-        <ModalWrapper onClose={() => setModalEdit(false)}>
-          <ModalHeader title="Edit Tempat" onClose={() => setModalEdit(false)} />
-          <FormTempat
-            form={form}
-            onChange={handleFormChange}
-            position={position}
-            setPosition={setPosition}
-          />
-          <div className="mt-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Lokasi Tempat
-            </label>
 
-            <div className="h-64 rounded-xl overflow-hidden border">
-              <TempatMap
-                lat={position.lat}
-                lng={position.lng}
-                nama="Lokasi Tempat"
-                draggable={true}
-                onDrag={(lat, lng) => {
-                  setPosition({ lat, lng });
-                }}
-              />
-            </div>
-
-            <p className="text-xs text-gray-500 mt-2">
-              Latitude: {position.lat.toFixed(5)} | Longitude:{" "}
-              {position.lng.toFixed(5)}
-            </p>
-          </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <button onClick={() => setModalEdit(false)} className="px-5 py-2 rounded-lg border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition">Batal</button>
-            <button onClick={handleEdit} disabled={loadingSubmit} className="px-5 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition disabled:opacity-60">
-              {loadingSubmit ? "Menyimpan..." : "Simpan Perubahan"}
-            </button>
-          </div>
-        </ModalWrapper>
-      )}
 
       {/* MODAL HAPUS */}
       {modalHapus && (
@@ -676,6 +993,11 @@ function StatusBadge({ status }: { status: string }) {
   if (status === "pending") return (
     <span className="flex items-center gap-1 text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full">
       <AlertCircle size={11} /> Menunggu
+    </span>
+  );
+  if (status === "pending_payment") return (
+    <span className="flex items-center gap-1 text-xs font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+      <Wallet size={11} /> Menunggu DP
     </span>
   );
   if (status === "accepted") return (
@@ -709,62 +1031,275 @@ function ModalHeader({ title, onClose }: { title: string; onClose: () => void })
   );
 }
 
+const REKOMENDASI_FASILITAS = [
+  "WiFi Cepat",
+  "AC",
+  "Smoking Area",
+  "Stopkontak",
+  "Parkir Luas",
+  "Mushola",
+  "Live Music",
+  "Area Indoor",
+  "Area Outdoor",
+  "VIP Room"
+];
+
 function FormTempat({
   form,
+  setForm,
   onChange,
   position,
   setPosition,
+  hargaMin,
+  setHargaMin,
+  hargaMax,
+  setHargaMax,
+  menuItems,
+  setMenuItems,
+  fasilitas,
+  setFasilitas,
+  campusSearch,
+  setCampusSearch,
+  isCampusDropdownOpen,
+  setIsCampusDropdownOpen,
 }: {
   form: any;
+  setForm: (val: any) => void;
   onChange: any;
   position: any;
   setPosition: any;
+  hargaMin: string;
+  setHargaMin: (val: string) => void;
+  hargaMax: string;
+  setHargaMax: (val: string) => void;
+  menuItems: Array<{ name: string; description: string; price: string }>;
+  setMenuItems: (val: Array<{ name: string; description: string; price: string }>) => void;
+  fasilitas: string[];
+  setFasilitas: (val: string[]) => void;
+  campusSearch: string;
+  setCampusSearch: (val: string) => void;
+  isCampusDropdownOpen: boolean;
+  setIsCampusDropdownOpen: (val: boolean) => void;
 }) {
   const inputClass =
-    "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-400 outline-none transition";
+    "w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:bg-white outline-none transition focus:ring-2 focus:ring-orange-100 font-medium text-sm text-gray-800";
 
   const labelClass =
-    "block text-sm font-semibold text-gray-700 mb-1";
+    "text-xs font-bold text-gray-600 uppercase tracking-wider";
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className={labelClass}>Nama Tempat *</label>
-        <input name="nama_tempat" value={form.nama_tempat} onChange={onChange} className={inputClass} />
-      </div>
-      <div>
-        <label className={labelClass}>Alamat *</label>
-        <input name="alamat" value={form.alamat} onChange={onChange} className={inputClass} />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass}>Jam Buka</label>
-          <input
-            type="time"
-            name="jam_buka" value={form.jam_buka} onChange={onChange} className={inputClass} />
+    <div className="space-y-5">
+
+      {/* ==================== SECTION 1: Informasi Dasar ==================== */}
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2 border-b pb-2">
+          <Store className="text-orange-500" size={18} />
+          <h3 className="text-sm font-bold text-gray-800">Informasi Dasar</h3>
         </div>
-        <div>
-          <label className={labelClass}>Kisaran Harga</label>
-          <input name="kisaran_harga" value={form.kisaran_harga} onChange={onChange} className={inputClass} />
+
+        {/* Nama Tempat */}
+        <div className="space-y-1.5">
+          <label className={labelClass}>Nama Tempat *</label>
+          <div className="relative flex items-center">
+            <Store className="absolute left-4 text-gray-400" size={16} />
+            <input name="nama_tempat" value={form.nama_tempat} onChange={onChange} className={inputClass} placeholder="Contoh: Plumeria Cafe" required />
+          </div>
+        </div>
+
+        {/* Alamat */}
+        <div className="space-y-1.5">
+          <label className={labelClass}>Alamat Lengkap *</label>
+          <div className="relative flex items-center">
+            <MapPin className="absolute left-4 text-gray-400" size={16} />
+            <input name="alamat" value={form.alamat} onChange={onChange} className={inputClass} placeholder="Jl. Telekomunikasi No. 1, Bojongsoang, Bandung" required />
+          </div>
+        </div>
+
+        {/* Kategori Tempat (Visual Cards) */}
+        <div className="space-y-1.5">
+          <label className={labelClass}>Kategori Tempat *</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {[
+              { value: "Cafe", label: "Kafe", icon: Coffee, activeStyle: "border-amber-500 bg-amber-50 text-amber-700 shadow-sm shadow-amber-100 ring-2 ring-amber-50" },
+              { value: "Warkop", label: "Warkop", icon: Beer, activeStyle: "border-orange-500 bg-orange-50 text-orange-700 shadow-sm shadow-orange-100 ring-2 ring-orange-50" },
+              { value: "Resto", label: "Restoran", icon: Utensils, activeStyle: "border-red-500 bg-red-50 text-red-700 shadow-sm shadow-red-100 ring-2 ring-red-50" },
+              { value: "Coworking", label: "Workspace", icon: Laptop, activeStyle: "border-blue-500 bg-blue-50 text-blue-700 shadow-sm shadow-blue-100 ring-2 ring-blue-50" }
+            ].map((cat) => {
+              const isSelected = form.kategori === cat.value;
+              return (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setForm({ ...form, kategori: cat.value })}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 outline-none hover:scale-105 active:scale-95
+                    ${isSelected ? `${cat.activeStyle} font-black` : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:bg-gray-100/50"}`}
+                >
+                  <cat.icon size={18} className={isSelected ? "" : "text-gray-400"} />
+                  <span className="text-[10px] font-bold">{cat.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Kampus Terdekat (Searchable Select) */}
+        <div className="space-y-1.5 relative">
+          <label className={labelClass}>Kampus Terdekat *</label>
+          <button
+            type="button"
+            onClick={() => setIsCampusDropdownOpen(!isCampusDropdownOpen)}
+            className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl hover:border-orange-500 hover:bg-white transition text-left outline-none focus:ring-2 focus:ring-orange-100"
+          >
+            <div className="flex items-center gap-2">
+              <GraduationCap className="text-gray-400" size={16} />
+              {form.id_kampus ? (() => {
+                const active = TOP_20_KAMPUS.find(c => c.id === form.id_kampus);
+                return (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-800">{active?.label}</span>
+                    <span className="text-[8px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-full font-bold border border-blue-100">{active?.city}</span>
+                  </div>
+                );
+              })() : <span className="text-xs text-gray-400 font-medium">-- Pilih Kampus Terdekat --</span>}
+            </div>
+            <span className="text-gray-400 text-xs">▼</span>
+          </button>
+          {isCampusDropdownOpen && (
+            <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-2.5 space-y-2 animate-in fade-in slide-in-from-top-2 duration-150">
+              <input type="text" value={campusSearch} onChange={(e) => setCampusSearch(e.target.value)} placeholder="Cari nama kampus atau kota..." className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:border-orange-500 focus:bg-white outline-none transition" autoFocus />
+              <div className="max-h-40 overflow-y-auto space-y-0.5 pr-0.5">
+                {(() => {
+                  const filtered = TOP_20_KAMPUS.filter(c => c.label.toLowerCase().includes(campusSearch.toLowerCase()) || c.city.toLowerCase().includes(campusSearch.toLowerCase()));
+                  if (filtered.length === 0) return <p className="text-center text-xs text-gray-400 py-2 italic">Kampus tidak ditemukan.</p>;
+                  return filtered.map(c => {
+                    const isSelected = form.id_kampus === c.id;
+                    return (
+                      <button key={c.id} type="button" onClick={() => { setForm((prev: any) => ({ ...prev, id_kampus: c.id })); setPosition({ lat: c.lat, lng: c.lng }); setIsCampusDropdownOpen(false); setCampusSearch(""); }}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg transition text-left text-[11px] font-bold outline-none ${isSelected ? "bg-orange-50 border border-orange-100 text-orange-700 font-extrabold" : "hover:bg-gray-50 text-gray-600 hover:text-gray-900"}`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <GraduationCap size={12} className={isSelected ? "text-orange-500" : "text-gray-400"} />
+                          <span>{c.label}</span>
+                        </div>
+                        <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold border ${isSelected ? "bg-orange-100/70 border-orange-200 text-orange-800" : "bg-gray-50 border-gray-200 text-gray-500"}`}>{c.city}</span>
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Kisaran Harga & Jam */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className={labelClass}>Kisaran Harga *</label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-extrabold">Rp</span>
+                <input type="number" value={hargaMin} onChange={(e) => setHargaMin(e.target.value)} placeholder="Min" className="w-full pl-8 pr-2 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:bg-white outline-none transition text-xs font-semibold" required />
+              </div>
+              <span className="text-gray-400 text-xs font-bold">—</span>
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-extrabold">Rp</span>
+                <input type="number" value={hargaMax} onChange={(e) => setHargaMax(e.target.value)} placeholder="Max" className="w-full pl-8 pr-2 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:bg-white outline-none transition text-xs font-semibold" required />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className={labelClass}>Jam Operasional *</label>
+            <div className="flex items-center gap-2">
+              <input type="time" value={form.waktu_buka} onChange={(e) => setForm({ ...form, waktu_buka: e.target.value })} className="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:bg-white outline-none transition text-xs font-semibold" required />
+              <span className="text-gray-400 text-xs font-bold">—</span>
+              <input type="time" value={form.waktu_tutup} onChange={(e) => setForm({ ...form, waktu_tutup: e.target.value })} className="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:bg-white outline-none transition text-xs font-semibold" required />
+            </div>
+          </div>
         </div>
       </div>
-      <div>
-      <label className={labelClass}>Foto Tempat (URL atau path upload)</label>
-      <input
-        name="gambar"
-        value={form.gambar}
-        onChange={onChange}
-        placeholder="https://... atau /uploads/nama-file.jpg"
-        className={inputClass}
-      />
-    </div>
-      <div>
-        <label className={labelClass}>Kampus *</label>
-        <select name="id_kampus" value={form.id_kampus} onChange={onChange} className={inputClass}>
-          <option value="">-- Pilih Kampus --</option>
-          <option value="KMP-TELU-01">Telkom University</option>
-          <option value="KMP-ITB-01">ITB</option>
-        </select>
+
+      {/* ==================== SECTION 2: Foto & Lokasi ==================== */}
+      <div className="space-y-4 border-t pt-4">
+        <div className="flex items-center space-x-2 border-b pb-2">
+          <ImageIcon className="text-green-500" size={18} />
+          <h3 className="text-sm font-bold text-gray-800">Foto & Lokasi</h3>
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Foto Tempat (URL atau Path)</label>
+          <div className="relative flex items-center">
+            <Upload className="absolute left-4 text-gray-400" size={16} />
+            <input name="gambar" value={form.gambar} onChange={onChange} placeholder="https://... atau /uploads/nama-file.jpg" className={inputClass} />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Pin Lokasi di Peta</label>
+          <div className="h-52 rounded-xl overflow-hidden border border-gray-200">
+            <TempatMap lat={position.lat} lng={position.lng} nama={form.nama_tempat || "Lokasi Tempat"} draggable={true} onDrag={(lat: number, lng: number) => setPosition({ lat, lng })} />
+          </div>
+          <p className="text-[10px] text-gray-400">Lat: {position.lat.toFixed(5)} | Lng: {position.lng.toFixed(5)}</p>
+        </div>
+      </div>
+
+      {/* ==================== SECTION 3: Fasilitas ==================== */}
+      <div className="space-y-3 border-t pt-4">
+        <div className="flex items-center space-x-2 border-b pb-2">
+          <span className="text-sm">🛠️</span>
+          <h3 className="text-sm font-bold text-gray-800">Fasilitas Tempat</h3>
+        </div>
+        <p className="text-[10px] text-gray-400 font-medium">Tuliskan fasilitas yang tersedia atau klik dari rekomendasi di bawah.</p>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input type="text" id="custom-fas-modal-input" placeholder="Ketik fasilitas lalu Enter..." className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:border-orange-500 outline-none transition"
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = e.currentTarget as HTMLInputElement; const v = t.value.trim(); if (v) { if (!fasilitas.includes(v)) setFasilitas([...fasilitas, v]); t.value = ""; } } }} />
+            <button type="button" onClick={() => { const input = document.getElementById("custom-fas-modal-input") as HTMLInputElement; if (input) { const v = input.value.trim(); if (v) { if (!fasilitas.includes(v)) setFasilitas([...fasilitas, v]); input.value = ""; } } }} className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl shadow transition">Tambah</button>
+          </div>
+          {REKOMENDASI_FASILITAS.filter(f => !fasilitas.includes(f)).length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mr-1">Rekomendasi:</span>
+              {REKOMENDASI_FASILITAS.filter(f => !fasilitas.includes(f)).map((f, idx) => (
+                <button key={idx} type="button" onClick={() => setFasilitas([...fasilitas, f])} className="bg-gray-50 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 border border-gray-200 text-gray-600 font-bold text-[9px] px-2 py-0.5 rounded-md transition-all transform hover:scale-105 active:scale-95 flex items-center gap-0.5">
+                  <span className="text-[10px] font-bold text-orange-500">+</span><span>{f}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {fasilitas.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {fasilitas.map((fasName, idx) => (
+              <span key={idx} className="inline-flex items-center gap-1 bg-orange-50 border border-orange-100 text-orange-700 font-bold text-[10px] px-2.5 py-1 rounded-full transition hover:scale-105">
+                <span>✨ {fasName}</span>
+                <button type="button" onClick={() => setFasilitas(fasilitas.filter(x => x !== fasName))} className="text-orange-400 hover:text-red-500 transition-colors font-extrabold text-[9px] pl-0.5">✕</button>
+              </span>
+            ))}
+          </div>
+        ) : <p className="text-[10px] text-gray-400 italic">Belum ada fasilitas yang ditambahkan.</p>}
+      </div>
+
+      {/* ==================== SECTION 4: Daftar Menu ==================== */}
+      <div className="space-y-3 border-t pt-4">
+        <div className="flex items-center space-x-2 border-b pb-2">
+          <Utensils className="text-purple-500" size={18} />
+          <h3 className="text-sm font-bold text-gray-800">Daftar Menu Andalan</h3>
+        </div>
+        <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+          {menuItems.map((item, idx) => (
+            <div key={idx} className="flex flex-col gap-1.5 p-3 bg-gray-50 border border-gray-200 rounded-xl relative group">
+              <div className="flex gap-2">
+                <input type="text" value={item.name} onChange={(e) => { const n = [...menuItems]; n[idx].name = e.target.value; setMenuItems(n); }} placeholder="Nama Menu" className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:border-orange-500 outline-none transition" required />
+                <div className="relative w-28">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">Rp</span>
+                  <input type="number" value={item.price} onChange={(e) => { const n = [...menuItems]; n[idx].price = e.target.value; setMenuItems(n); }} placeholder="Harga" className="w-full pl-6 pr-2 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:border-orange-500 outline-none transition" required />
+                </div>
+                <button type="button" onClick={() => { if (menuItems.length > 1) setMenuItems(menuItems.filter((_, i) => i !== idx)); else setMenuItems([{ name: "", description: "", price: "" }]); }} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition"><Trash2 size={14} /></button>
+              </div>
+              <input type="text" value={item.description} onChange={(e) => { const n = [...menuItems]; n[idx].description = e.target.value; setMenuItems(n); }} placeholder="Keterangan / Deskripsi" className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:border-orange-500 outline-none transition" />
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={() => setMenuItems([...menuItems, { name: "", description: "", price: "" }])} className="flex items-center gap-1 text-[11px] font-extrabold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-2 rounded-xl transition-all mt-1">
+          <Plus size={12} /> Tambah Item Menu
+        </button>
       </div>
     </div>
   );

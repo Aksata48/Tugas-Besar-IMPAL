@@ -33,6 +33,9 @@ export async function GET() {
       lantai: b.lantai,
       nomorMeja: b.nomorMeja,
       mejaId: b.mejaId,
+      total_harga: b.total_harga,
+      dp_harga: b.dp_harga,
+      catatan: b.catatan,
       meja: b.meja
         ? {
             id: b.meja.id,
@@ -41,7 +44,10 @@ export async function GET() {
             kapasitas_kursi: b.meja.kapasitas_kursi,
           }
         : null,
-      tempat: { nama_tempat: b.tempat.nama_tempat },
+      tempat: { 
+        id_tempat: b.tempat.id_tempat,
+        nama_tempat: b.tempat.nama_tempat 
+      },
     }));
 
     return NextResponse.json({ success: true, bookings: formatted });
@@ -58,7 +64,7 @@ export async function PATCH(req: Request) {
   try {
     const { id, status } = await req.json();
 
-    if (!id || !["accepted", "rejected", "pending"].includes(status)) {
+    if (!id || !["accepted", "rejected", "pending", "pending_payment"].includes(status)) {
       return NextResponse.json(
         { success: false, message: "Data tidak valid" },
         { status: 400 }
@@ -116,6 +122,8 @@ export async function POST(req: Request) {
       lantai,
       nomorMeja,
       mejaId,
+      total_harga,
+      dp_harga,
     } = body;
 
     // --------------------------------------------------
@@ -302,6 +310,8 @@ export async function POST(req: Request) {
         nomorMeja: nomorMeja || null,
         mejaId: mejaId || null,
         status: "pending",
+        total_harga: total_harga ? Number(total_harga) : 0,
+        dp_harga: dp_harga ? Number(dp_harga) : 0,
       },
       include: {
         tempat: true,

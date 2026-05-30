@@ -222,6 +222,21 @@ const generateTimes = () => {
   return times;
 };
 
+const getCategoryName = (kategoriField: any): string => {
+  if (!kategoriField) return "";
+  if (typeof kategoriField === "string") return kategoriField;
+  if (Array.isArray(kategoriField)) {
+    const first = kategoriField[0];
+    if (first?.kategori?.nama_kategori) return first.kategori.nama_kategori;
+    if (first?.nama_kategori) return first.nama_kategori;
+  }
+  if (typeof kategoriField === "object") {
+    if (kategoriField.kategori?.nama_kategori) return kategoriField.kategori.nama_kategori;
+    if (kategoriField.nama_kategori) return kategoriField.nama_kategori;
+  }
+  return "";
+};
+
 // ============================================================
 // HALAMAN FORM BOOKING UTAMA (LANDSCAPE)
 // ============================================================
@@ -254,6 +269,7 @@ function BookingForm() {
   const [mejaDB, setMejaDB] = useState<MejaDB[]>([]);
   const [loadingMeja, setLoadingMeja] = useState(true);
   const [errorMeja, setErrorMeja] = useState("");
+  const [tempatDetails, setTempatDetails] = useState<any>(null);
 
   // Load username dari localStorage
   useEffect(() => {
@@ -283,6 +299,7 @@ function BookingForm() {
         if (data.success) {
           const tempat = data.tempat.find((t: any) => t.id_tempat === idDariUrl);
           if (tempat) {
+            setTempatDetails(tempat);
             if (Array.isArray(tempat.mejas)) {
               setMejaDB(tempat.mejas);
             } else {
@@ -292,20 +309,37 @@ function BookingForm() {
             // Parse menu teks kafenya jika ada
             let parsed: MenuListItem[] = [];
             if (tempat.menu_text) {
-              const items = tempat.menu_text.split(/[,\n]/).map((x: string) => x.trim()).filter(Boolean);
-              parsed = items.map((item: string, idx: number) => {
-                let price = 22000;
-                if (item.toLowerCase().includes("nasi") || item.toLowerCase().includes("goreng") || item.toLowerCase().includes("spesial")) {
-                  price = 35000;
-                } else if (item.toLowerCase().includes("croissant") || item.toLowerCase().includes("cake") || item.toLowerCase().includes("roti")) {
-                  price = 28000;
-                } else if (item.toLowerCase().includes("kopi") || item.toLowerCase().includes("latte") || item.toLowerCase().includes("matcha")) {
-                  price = 24000;
-                } else {
-                  price = 18000 + (idx % 4) * 4000;
+              if (tempat.menu_text.trim().startsWith("[")) {
+                try {
+                  const jsonMenus = JSON.parse(tempat.menu_text);
+                  if (Array.isArray(jsonMenus)) {
+                    parsed = jsonMenus.map((m: any) => ({
+                      name: m.name || "",
+                      price: Number(m.price) || 0,
+                      category: "Menu Kafe"
+                    }));
+                  }
+                } catch (e) {
+                  console.error("Error parsing menu JSON in booking:", e);
                 }
-                return { name: item, price, category: "Menu Kafe" };
-              });
+              }
+
+              if (parsed.length === 0) {
+                const items = tempat.menu_text.split(/[,\n]/).map((x: string) => x.trim()).filter(Boolean);
+                parsed = items.map((item: string, idx: number) => {
+                  let price = 22000;
+                  if (item.toLowerCase().includes("nasi") || item.toLowerCase().includes("goreng") || item.toLowerCase().includes("spesial")) {
+                    price = 35000;
+                  } else if (item.toLowerCase().includes("croissant") || item.toLowerCase().includes("cake") || item.toLowerCase().includes("roti")) {
+                    price = 28000;
+                  } else if (item.toLowerCase().includes("kopi") || item.toLowerCase().includes("latte") || item.toLowerCase().includes("matcha")) {
+                    price = 24000;
+                  } else {
+                    price = 18000 + (idx % 4) * 4000;
+                  }
+                  return { name: item, price, category: "Menu Kafe" };
+                });
+              }
             }
 
             // Fallback menu default jika data kosong
@@ -477,6 +511,8 @@ function BookingForm() {
           lantai: selectedLantai,
           nomorMeja: selectedMejaLabel,
           mejaId: selectedMejaId,
+          total_harga: totalMenuPrice,
+          dp_harga: Math.ceil(totalMenuPrice / 2),
         }),
       });
 
@@ -520,18 +556,55 @@ function BookingForm() {
     <div className="py-10 px-4 md:px-8 max-w-7xl mx-auto font-sans bg-gray-50/20 min-h-screen">
       
       {/* Header Premium */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 mb-8 gap-4">
-        <div>
-          <p className="text-[10px] font-black text-blue-600 tracking-[0.3em] uppercase mb-1">Interactive Seat Reservation</p>
-          <h2 className="text-3xl font-black text-slate-800 uppercase leading-none">{namaTempatDariUrl}</h2>
-          <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-gray-150 shadow-sm mt-3 text-xs font-bold text-gray-500">
-            <Clock size={13} className="text-blue-500" />
-            <span>Operational: {jamOperasional}</span>
+      <div className="flex flex-col lg:flex-row justify-between items-start border-b pb-6 mb-8 gap-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+        <div className="space-y-3 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[10px] font-black text-blue-600 tracking-[0.3em] uppercase">Interactive Seat Reservation</p>
+            {(() => {
+              const katName = getCategoryName(tempatDetails?.kategori);
+              return katName ? (
+                <span className="text-[9px] bg-blue-50 text-blue-700 font-extrabold uppercase px-2 py-0.5 rounded-md border border-blue-100 animate-in fade-in duration-200">
+                  {katName === "Cafe" ? "Kafe" : katName === "Resto" ? "Restoran" : katName === "Coworking" ? "Workspace" : katName}
+                </span>
+              ) : null;
+            })()}
           </div>
+          <h2 className="text-3xl font-black text-slate-800 uppercase leading-none">{namaTempatDariUrl}</h2>
+          
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+              <Clock size={13} className="text-blue-500" />
+              <span>Jam Operasional: {jamOperasional}</span>
+            </div>
+            {tempatDetails?.alamat && (
+              <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                <MapPin size={13} className="text-red-500" />
+                <span className="line-clamp-1">{tempatDetails.alamat}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Dinamis menampilkan fasilitas yang terintegrasi */}
+          {tempatDetails?.fasilitas && tempatDetails.fasilitas.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {tempatDetails.fasilitas.map((f: any) => (
+                <span
+                  key={f.fasilitas.id_fasilitas}
+                  className="inline-flex items-center bg-slate-50 border border-slate-200/60 text-slate-650 font-extrabold text-[10px] px-2.5 py-1 rounded-full shadow-2xs hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100 transition-colors"
+                >
+                  ✨ {f.fasilitas.nama_fasilitas}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="text-xs bg-amber-50 text-amber-700 px-4 py-2.5 rounded-xl border border-amber-200/80 font-bold flex items-center gap-2 max-w-sm">
-          <Info size={16} className="text-amber-600 shrink-0" />
-          <span>Aturan Kafe: Durasi pemesanan meja maksimal adalah 2 jam untuk kenyamanan semua pelanggan.</span>
+        
+        <div className="text-xs bg-amber-50/50 text-amber-800 p-4 rounded-2xl border border-amber-200/60 font-bold flex items-start gap-2.5 max-w-sm shrink-0">
+          <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-extrabold text-[11px] uppercase tracking-wider text-amber-700">Aturan Booking</p>
+            <p className="text-gray-600 text-[11px] leading-relaxed">Durasi pemesanan meja maksimal adalah 2 jam untuk kenyamanan semua pelanggan nongkrong.</p>
+          </div>
         </div>
       </div>
 

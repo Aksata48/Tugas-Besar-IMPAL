@@ -1,6 +1,42 @@
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
+async function resolveFasilitasIds(fasilitasNamesOrIds: string[]) {
+  const ids: string[] = [];
+  
+  for (const item of fasilitasNamesOrIds) {
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    
+    // Check if it's an existing ID first (e.g. FAS-1)
+    let fas = await prisma.fasilitas.findUnique({
+      where: { id_fasilitas: trimmed }
+    });
+    
+    // If not found by ID, try finding by name
+    if (!fas) {
+      fas = await prisma.fasilitas.findFirst({
+        where: { nama_fasilitas: trimmed }
+      });
+    }
+    
+    // If still not found, create a new Fasilitas record
+    if (!fas) {
+      const generatedId = `FAS-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      fas = await prisma.fasilitas.create({
+        data: {
+          id_fasilitas: generatedId,
+          nama_fasilitas: trimmed
+        }
+      });
+    }
+    
+    ids.push(fas.id_fasilitas);
+  }
+  
+  return ids;
+}
+
 // ==========================================
 // 1. GET: Mengambil Semua Data Tempat
 //    Sekarang menyertakan data mejas agar
@@ -11,14 +47,18 @@ export async function GET() {
   try {
     const tempat = await prisma.tempat.findMany({
       include: {
-        // Sertakan data meja agar halaman booking bisa
-        // mengambil layout meja langsung dari database
         mejas: {
           orderBy: [
             { nama_lantai: "asc" },
             { nomor_meja: "asc" },
           ],
         },
+        fasilitas: {
+          include: { fasilitas: true }
+        },
+        kategori: {
+          include: { kategori: true }
+        }
       },
     });
     return NextResponse.json({
@@ -72,6 +112,7 @@ export async function POST(request: NextRequest) {
       menu_gambar,
       lantaiData, // array konfigurasi meja per lantai
       kategori, // Ambil kategori dari form input
+      fasilitas, // Ambil daftar fasilitas terpilh (array of ID)
     } = body;
 
     // --- Validasi wajib isi ---
@@ -122,6 +163,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Resolve facilities IDs dynamically (checking standard pre-seeded IDs or creating new custom names)
+    const resolvedFasIds = await resolveFasilitasIds(fasilitas || []);
+
     // --- Buat record Tempat ---
     const tempatBaru = await prisma.tempat.create({
       data: {
@@ -144,6 +188,14 @@ export async function POST(request: NextRequest) {
             create: {
               id_kategori: idKategori,
             }
+          }
+        } : {}),
+        // Buat relasi TempatFasilitas jika fasilitas diberikan
+        ...(resolvedFasIds.length > 0 ? {
+          fasilitas: {
+            create: resolvedFasIds.map((idFas: string) => ({
+              id_fasilitas: idFas,
+            }))
           }
         } : {}),
       },
@@ -251,6 +303,8 @@ export async function PATCH(request: NextRequest) {
       gambar,
       menu_text,
       menu_gambar,
+      fasilitas, // Ambil daftar fasilitas terpilih
+      kategori, // Ambil kategori dari form input
     } = body;
 
     if (!id_tempat) {
@@ -269,6 +323,37 @@ export async function PATCH(request: NextRequest) {
       extraJamUpdate.waktu_tutup = parts[1]?.trim() || "22:00";
     }
 
+    // Hapus relasi fasilitas lama jika dikirim fasilitas baru
+    if (Array.isArray(fasilitas)) {
+      await prisma.tempatFasilitas.deleteMany({
+        where: { id_tempat }
+      });
+    }
+
+    // Hapus relasi kategori lama jika dikirim kategori baru
+    if (kategori !== undefined) {
+      await prisma.tempatKategori.deleteMany({
+        where: { id_tempat }
+      });
+    }
+
+    // --- Pemetaan Kategori dari Form ke ID Kategori Database ---
+    let idKategori = "";
+    if (kategori) {
+      const lowerKat = kategori.toLowerCase();
+      if (lowerKat === "cafe" || lowerKat === "kafe") {
+        idKategori = "KAT-1";
+      } else if (lowerKat === "warkop") {
+        idKategori = "KAT-2";
+      } else if (lowerKat === "resto" || lowerKat === "restoran") {
+        idKategori = "KAT-3";
+      } else if (lowerKat === "coworking" || lowerKat === "workspace") {
+        idKategori = "KAT-4";
+      }
+    }
+
+    const resolvedFasIds = await resolveFasilitasIds(fasilitas || []);
+
     const updatedTempat = await prisma.tempat.update({
       where: { id_tempat },
       data: {
@@ -282,9 +367,27 @@ export async function PATCH(request: NextRequest) {
         menu_text: menu_text !== undefined ? menu_text : undefined,
         menu_gambar: menu_gambar !== undefined ? menu_gambar : undefined,
         ...extraJamUpdate,
+        // Hubungkan relasi TempatKategori yang baru
+        ...(idKategori ? {
+          kategori: {
+            create: {
+              id_kategori: idKategori,
+            }
+          }
+        } : {}),
+        // Hubungkan relasi TempatFasilitas yang baru
+        ...(resolvedFasIds.length > 0 ? {
+          fasilitas: {
+            create: resolvedFasIds.map((idFas: string) => ({
+              id_fasilitas: idFas,
+            }))
+          }
+        } : {}),
       },
       include: {
         mejas: { orderBy: [{ nama_lantai: "asc" }, { nomor_meja: "asc" }] },
+        fasilitas: { include: { fasilitas: true } },
+        kategori: { include: { kategori: true } },
       },
     });
 

@@ -70,8 +70,17 @@ export default function MyBookingsPage() {
                       <User size={14} /> {bk.nama} 
                     </div>
                   </div>
-                  <span className="bg-amber-50 text-amber-600 text-[10px] font-black px-4 py-1.5 rounded-full border border-amber-100 shadow-sm uppercase">
-                    Menunggu
+                  <span className={`text-[10px] font-black px-4 py-1.5 rounded-full border shadow-sm uppercase ${
+                    bk.status === "pending" ? "bg-amber-50 text-amber-600 border-amber-100" :
+                    bk.status === "pending_payment" ? "bg-orange-50 text-orange-600 border-orange-100" :
+                    bk.status === "accepted" ? "bg-green-50 text-green-600 border-green-100" :
+                    bk.status === "rejected" ? "bg-red-50 text-red-600 border-red-100" :
+                    "bg-gray-50 text-gray-600 border-gray-100"
+                  }`}>
+                    {bk.status === "pending" ? "Menunggu" :
+                     bk.status === "pending_payment" ? "Bayar DP" :
+                     bk.status === "accepted" ? "Diterima" :
+                     bk.status === "rejected" ? "Ditolak" : bk.status}
                   </span>
                 </div>
                 

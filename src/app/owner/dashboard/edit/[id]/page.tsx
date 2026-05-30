@@ -1,6 +1,6 @@
 "use client";
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useParams } from "next/navigation";
 import {
   Store, MapPin, Image as ImageIcon, UtensilsCrossed,
   Plus, Trash2, Save, ArrowLeft, Upload, CheckCircle, Loader2,
@@ -9,126 +9,24 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import TempatMap from "@/components/Map";
+import { getFloorTheme, TOP_20_KAMPUS } from "../../tambah/page";
 
-// ============================================================
-// Tipe helper untuk konfigurasi lantai & meja visual
-// ============================================================
 interface MejaConfig {
   id: string;
   nomorMeja: string;
   kapasitas: number;
   x: number; // Koordinat X (%) di grid
   y: number; // Koordinat Y (%) di grid
-  tipeLantai?: string; // INDOOR / OUTDOOR_BALKON / OUTDOOR_ROOFTOP / OUTDOOR_TAMAN / OUTDOOR_TERAS
+  tipeLantai?: string;
 }
 
 interface LantaiConfig {
   id?: string;
   namaLantai: string;
-  tipeLantai: string; // INDOOR / OUTDOOR_BALKON / OUTDOOR_ROOFTOP / OUTDOOR_TAMAN / OUTDOOR_TERAS
+  tipeLantai: string;
   mejas: MejaConfig[];
 }
 
-export const getFloorTheme = (tipe: string) => {
-  switch (tipe) {
-    case "OUTDOOR_BALKON":
-      return {
-        gridColor: "rgba(245, 158, 11, 0.08)", // amber
-        borderColor: "border-amber-200",
-        headerBg: "bg-amber-50/20",
-        badge: "bg-amber-50 text-amber-700 border-amber-200",
-        label: "Outdoor (Balkon)",
-        canvasBg: "bg-amber-50/10",
-        dotColor: "rgba(245, 158, 11, 0.12)",
-        tableStyle: "bg-gradient-to-br from-amber-400 to-amber-600 text-white border-amber-600 shadow-md shadow-amber-200/50 hover:scale-105 hover:shadow-lg",
-        tableActiveStyle: "bg-gradient-to-br from-orange-500 to-orange-600 text-white border-orange-700 ring-4 ring-orange-100 z-10 font-extrabold scale-110",
-        gridLineStyle: "linear-gradient(rgba(245, 158, 11, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(245, 158, 11, 0.08) 1px, transparent 1px)"
-      };
-    case "OUTDOOR_ROOFTOP":
-      return {
-        gridColor: "rgba(249, 115, 22, 0.08)", // orange
-        borderColor: "border-orange-200",
-        headerBg: "bg-orange-50/20",
-        badge: "bg-orange-50 text-orange-700 border-orange-200",
-        label: "Outdoor (Rooftop)",
-        canvasBg: "bg-orange-50/10",
-        dotColor: "rgba(249, 115, 22, 0.12)",
-        tableStyle: "bg-gradient-to-br from-orange-400 to-orange-600 text-white border-orange-600 shadow-md shadow-orange-200/50 hover:scale-105 hover:shadow-lg",
-        tableActiveStyle: "bg-gradient-to-br from-red-500 to-red-600 text-white border-red-700 ring-4 ring-red-100 z-10 font-extrabold scale-110",
-        gridLineStyle: "linear-gradient(rgba(249, 115, 22, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(249, 115, 22, 0.08) 1px, transparent 1px)"
-      };
-    case "OUTDOOR_TAMAN":
-      return {
-        gridColor: "rgba(16, 185, 129, 0.08)", // emerald
-        borderColor: "border-emerald-250",
-        headerBg: "bg-emerald-50/20",
-        badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        label: "Outdoor (Taman)",
-        canvasBg: "bg-emerald-50/10",
-        dotColor: "rgba(16, 185, 129, 0.12)",
-        tableStyle: "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-200/50 hover:scale-105 hover:shadow-lg",
-        tableActiveStyle: "bg-gradient-to-br from-teal-500 to-teal-600 text-white border-teal-700 ring-4 ring-teal-100 z-10 font-extrabold scale-110",
-        gridLineStyle: "linear-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.08) 1px, transparent 1px)"
-      };
-    case "OUTDOOR_TERAS":
-      return {
-        gridColor: "rgba(20, 184, 166, 0.08)", // teal
-        borderColor: "border-teal-250",
-        headerBg: "bg-teal-50/20",
-        badge: "bg-teal-50 text-teal-700 border-teal-200",
-        label: "Outdoor (Teras)",
-        canvasBg: "bg-teal-50/10",
-        dotColor: "rgba(20, 184, 166, 0.12)",
-        tableStyle: "bg-gradient-to-br from-teal-400 to-teal-600 text-white border-teal-600 shadow-md shadow-teal-200/50 hover:scale-105 hover:shadow-lg",
-        tableActiveStyle: "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-100 z-10 font-extrabold scale-110",
-        gridLineStyle: "linear-gradient(rgba(20, 184, 166, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(20, 184, 166, 0.08) 1px, transparent 1px)"
-      };
-    case "INDOOR":
-    default:
-      return {
-        gridColor: "rgba(59, 130, 246, 0.05)", // blue
-        borderColor: "border-blue-200",
-        headerBg: "bg-slate-50",
-        badge: "bg-blue-50 text-blue-700 border-blue-100",
-        label: "Indoor",
-        canvasBg: "bg-slate-50",
-        dotColor: "rgba(59, 130, 246, 0.05)",
-        tableStyle: "bg-white text-blue-700 border-blue-600 hover:border-orange-500 hover:scale-105 hover:shadow-lg",
-        tableActiveStyle: "bg-orange-500 text-white border-orange-600 ring-4 ring-orange-100 z-10 font-extrabold scale-110",
-        gridLineStyle: "linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px)"
-      };
-  }
-};
-
-export const TOP_20_KAMPUS = [
-  { id: "KMP-TELU-01", label: "Telkom University (Tel-U)", city: "Bandung", lat: -6.9731, lng: 107.6306 },
-  { id: "KMP-UI-02", label: "Universitas Indonesia (UI)", city: "Depok", lat: -6.3606, lng: 106.8272 },
-  { id: "KMP-UGM-03", label: "Universitas Gadjah Mada (UGM)", city: "Yogyakarta", lat: -7.7681, lng: 110.3786 },
-  { id: "KMP-ITB-04", label: "Institut Teknologi Bandung (ITB)", city: "Bandung", lat: -6.8915, lng: 107.6106 },
-  { id: "KMP-IPB-05", label: "IPB University (IPB)", city: "Bogor", lat: -6.5562, lng: 106.7243 },
-  { id: "KMP-UNAIR-06", label: "Universitas Airlangga (UNAIR)", city: "Surabaya", lat: -7.2676, lng: 112.7844 },
-  { id: "KMP-ITS-07", label: "Institut Teknologi Sepuluh Nopember (ITS)", city: "Surabaya", lat: -7.2824, lng: 112.7949 },
-  { id: "KMP-UNPAD-08", label: "Universitas Padjadjaran (UNPAD)", city: "Sumedang", lat: -6.9265, lng: 107.7744 },
-  { id: "KMP-UNDIP-09", label: "Universitas Diponegoro (UNDIP)", city: "Semarang", lat: -7.0494, lng: 110.4392 },
-  { id: "KMP-UB-10", label: "Universitas Brawijaya (UB)", city: "Malang", lat: -7.9526, lng: 112.6144 },
-  { id: "KMP-UNHAS-11", label: "Universitas Hasanuddin (UNHAS)", city: "Makassar", lat: -5.1328, lng: 119.4883 },
-  { id: "KMP-UNS-12", label: "Universitas Sebelas Maret (UNS)", city: "Surakarta", lat: -7.5587, lng: 110.8569 },
-  { id: "KMP-UPI-13", label: "Universitas Pendidikan Indonesia (UPI)", city: "Bandung", lat: -6.8610, lng: 107.5946 },
-  { id: "KMP-USU-14", label: "Universitas Sumatera Utara (USU)", city: "Medan", lat: 3.5649, lng: 98.6560 },
-  { id: "KMP-USK-15", label: "Universitas Syiah Kuala (USK)", city: "Aceh", lat: 5.5702, lng: 95.3695 },
-  { id: "KMP-UNAND-16", label: "Universitas Andalas (UNAND)", city: "Padang", lat: -0.9141, lng: 100.4619 },
-  { id: "KMP-UNSRI-17", label: "Universitas Sriwijaya (UNSRI)", city: "Palembang", lat: -3.2185, lng: 104.6506 },
-  { id: "KMP-UNY-18", label: "Universitas Negeri Yogyakarta (UNY)", city: "Yogyakarta", lat: -7.7736, lng: 110.3868 },
-  { id: "KMP-BINUS-19", label: "Universitas Bina Nusantara (BINUS)", city: "Jakarta", lat: -6.2241, lng: 106.7826 },
-  { id: "KMP-UMY-20", label: "Universitas Muhammadiyah Yogyakarta (UMY)", city: "Yogyakarta", lat: -7.8118, lng: 110.3218 }
-];
-
-// ============================================================
-// Komponen ImageUploader — reusable untuk upload 1 foto
-// - Menampilkan area drag & drop / klik
-// - Upload langsung ke /api/upload
-// - Mengembalikan filePath ke parent via onUploaded
-// ============================================================
 function ImageUploader({
   label,
   hint,
@@ -145,6 +43,10 @@ function ImageUploader({
   const [uploadError, setUploadError] = useState("");
   const [previewUrl, setPreviewUrl] = useState(currentPath || "");
 
+  useEffect(() => {
+    setPreviewUrl(currentPath || "");
+  }, [currentPath]);
+
   const handleFile = async (file: File) => {
     setUploadError("");
     const ALLOWED = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
@@ -157,7 +59,6 @@ function ImageUploader({
       return;
     }
 
-    // Preview lokal sebelum upload selesai
     setPreviewUrl(URL.createObjectURL(file));
     setIsUploading(true);
 
@@ -169,8 +70,8 @@ function ImageUploader({
       const data = await res.json();
 
       if (data.success) {
-        setPreviewUrl(data.filePath); // Ganti preview ke path permanen
-        onUploaded(data.filePath);   // Kirim ke parent state
+        setPreviewUrl(data.filePath);
+        onUploaded(data.filePath);
       } else {
         setUploadError(data.message || "Upload gagal. Coba lagi.");
         setPreviewUrl("");
@@ -199,7 +100,6 @@ function ImageUploader({
       <label className="text-xs font-bold text-gray-600 uppercase">{label}</label>
       {hint && <p className="text-xs text-gray-400">{hint}</p>}
 
-      {/* Drop zone */}
       <div
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
@@ -211,14 +111,12 @@ function ImageUploader({
       >
         {previewUrl ? (
           <>
-            {/* Preview gambar */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewUrl}
               alt="Preview"
               className="h-full w-full object-cover rounded-xl"
             />
-            {/* Overlay sukses */}
             {!isUploading && (
               <div className="absolute inset-0 bg-black/20 rounded-xl flex items-center justify-center opacity-0 hover:opacity-100 transition">
                 <span className="text-white font-bold text-xs bg-black/50 px-3 py-1 rounded-full">Ganti Foto</span>
@@ -242,7 +140,6 @@ function ImageUploader({
           </div>
         )}
 
-        {/* Indikator sukses kecil */}
         {previewUrl && !isUploading && (
           <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full p-0.5">
             <CheckCircle size={16} />
@@ -280,25 +177,55 @@ const REKOMENDASI_FASILITAS = [
   "VIP Room"
 ];
 
-// ============================================================
-// Halaman Utama: Tambah Tempat
-// ============================================================
-export default function TambahTempatOwner() {
+const parsePriceRange = (rangeStr: string) => {
+  if (!rangeStr) return { min: "", max: "" };
+  const cleanStr = rangeStr.replace(/Rp/g, "").replace(/\./g, "").trim();
+  const parts = cleanStr.split("-");
+  if (parts.length === 2) {
+    const minVal = parts[0].replace(/\D/g, "");
+    const maxVal = parts[1].replace(/\D/g, "");
+    if (minVal && maxVal) {
+      return { min: minVal, max: maxVal };
+    }
+  }
+  return { min: "", max: "" };
+};
+
+const parseMenuItems = (menuText: string | null) => {
+  if (!menuText) return [{ name: "", description: "", price: "" }];
+  try {
+    if (menuText.trim().startsWith("[")) {
+      const parsed = JSON.parse(menuText);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item: any) => ({
+          name: item.name || "",
+          description: item.description || "",
+          price: item.price !== undefined ? String(item.price) : ""
+        }));
+      }
+    }
+  } catch (e) {
+    console.error("Error parsing menu items:", e);
+  }
+  return [{ name: "", description: "", price: "" }];
+};
+
+export default function EditTempatOwner() {
   const router = useRouter();
+  const { id } = useParams();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const [campusSearch, setCampusSearch] = useState("");
   const [isCampusDropdownOpen, setIsCampusDropdownOpen] = useState(false);
 
-  // 1. STATE DATA UMUM
   const [formData, setFormData] = useState({
     nama_tempat: "",
     alamat: "",
     waktu_buka: "",
     waktu_tutup: "",
-    kisaran_harga: "",
     kategori: "",
     id_kampus: "",
     latitude: -6.9740,
@@ -307,44 +234,113 @@ export default function TambahTempatOwner() {
 
   const [hargaMin, setHargaMin] = useState("");
   const [hargaMax, setHargaMax] = useState("");
-
-  // 2. STATE PATH FOTO (diisi setelah upload berhasil)
-  const [gambarPath, setGambarPath] = useState(""); // Foto tempat utama
-  const [menuGambarPath, setMenuGambarPath] = useState(""); // Foto menu
+  const [gambarPath, setGambarPath] = useState("");
+  const [menuGambarPath, setMenuGambarPath] = useState("");
   const [menuItems, setMenuItems] = useState<Array<{ name: string; description: string; price: string }>>([
     { name: "", description: "", price: "" }
   ]);
   const [fasilitas, setFasilitas] = useState<string[]>([]);
   const [fasInput, setFasInput] = useState("");
-
-  // 3. STATE LANTAI & MEJA (Layout Visual - Meja diposisikan secara custom)
-  const [lantaiData, setLantaiData] = useState<LantaiConfig[]>([
-    { 
-      id: "f1",
-      namaLantai: "Lantai 1", 
-      tipeLantai: "INDOOR",
-      mejas: [
-        { id: "m1", nomorMeja: "Meja 01", kapasitas: 4, x: 20, y: 25, tipeLantai: "INDOOR" },
-        { id: "m2", nomorMeja: "Meja 02", kapasitas: 4, x: 50, y: 25, tipeLantai: "INDOOR" },
-        { id: "m3", nomorMeja: "Meja 03", kapasitas: 4, x: 80, y: 25, tipeLantai: "INDOOR" },
-        { id: "m4", nomorMeja: "Meja 04", kapasitas: 2, x: 35, y: 65, tipeLantai: "INDOOR" },
-        { id: "m5", nomorMeja: "Meja 05", kapasitas: 2, x: 65, y: 65, tipeLantai: "INDOOR" },
-      ]
-    },
-  ]);
-
-  // State untuk melacak meja mana yang sedang digeser (floorIdx, tableIdx)
+  
+  const [lantaiData, setLantaiData] = useState<LantaiConfig[]>([]);
   const [activeDrag, setActiveDrag] = useState<{ floorIdx: number; tableIdx: number } | null>(null);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
 
-  // --- LOGIKA LANTAI & MEJA ---
+  // Load existing data
+  useEffect(() => {
+    if (!id) return;
+
+    fetch(`/api/tempat/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const t = data.tempat;
+          const parsedPrice = parsePriceRange(t.kisaran_harga);
+          setHargaMin(parsedPrice.min);
+          setHargaMax(parsedPrice.max);
+
+          // Get Category value mapped to cards
+          let kategoriValue = "";
+          if (Array.isArray(t.kategori) && t.kategori.length > 0) {
+            const katName = t.kategori[0]?.kategori?.nama_kategori || "";
+            if (katName.toLowerCase().includes("cafe") || katName.toLowerCase().includes("kafe")) kategoriValue = "Cafe";
+            else if (katName.toLowerCase().includes("warkop")) kategoriValue = "Warkop";
+            else if (katName.toLowerCase().includes("resto")) kategoriValue = "Resto";
+            else if (katName.toLowerCase().includes("coworking") || katName.toLowerCase().includes("workspace")) kategoriValue = "Coworking";
+            else kategoriValue = katName;
+          }
+
+          setFormData({
+            nama_tempat: t.nama_tempat,
+            alamat: t.alamat,
+            waktu_buka: t.waktu_buka || "08:00",
+            waktu_tutup: t.waktu_tutup || "22:00",
+            kategori: kategoriValue,
+            id_kampus: t.id_kampus,
+            latitude: t.latitude || -6.9740,
+            longitude: t.longitude || 107.6303,
+          });
+
+          setGambarPath(t.gambar || "");
+          setMenuGambarPath(t.menu_gambar || "");
+          setMenuItems(parseMenuItems(t.menu_text));
+          
+          if (Array.isArray(t.fasilitas)) {
+            setFasilitas(t.fasilitas.map((f: any) => f.fasilitas.nama_fasilitas));
+          }
+
+          // Build Lantai & Mejas Layout
+          const groupedFloors: { [key: string]: LantaiConfig } = {};
+          if (Array.isArray(t.mejas)) {
+            t.mejas.forEach((meja: any) => {
+              const floorName = meja.nama_lantai || "Lantai 1";
+              const floorType = meja.tipe_lantai || "INDOOR";
+              if (!groupedFloors[floorName]) {
+                groupedFloors[floorName] = {
+                  id: floorName,
+                  namaLantai: floorName,
+                  tipeLantai: floorType,
+                  mejas: []
+                };
+              }
+              groupedFloors[floorName].mejas.push({
+                id: meja.id,
+                nomorMeja: meja.nomor_meja,
+                kapasitas: meja.kapasitas_kursi,
+                x: meja.x || 0,
+                y: meja.y || 0,
+                tipeLantai: meja.tipe_lantai || "INDOOR"
+              });
+            });
+          }
+
+          const lantaiArray = Object.values(groupedFloors);
+          if (lantaiArray.length === 0) {
+            setLantaiData([{
+              id: "f1",
+              namaLantai: "Lantai 1",
+              tipeLantai: "INDOOR",
+              mejas: []
+            }]);
+          } else {
+            setLantaiData(lantaiArray);
+          }
+        } else {
+          setSubmitError(data.message || "Gagal memuat tempat.");
+        }
+      })
+      .catch(() => setSubmitError("Koneksi gagal saat mengambil data tempat."))
+      .finally(() => setIsFetching(false));
+  }, [id]);
+
+  // Floor and table management
   const handleTambahLantai = () => {
     const nextIdx = lantaiData.length + 1;
     setLantaiData([
       ...lantaiData,
-      { 
+      {
         id: Math.random().toString(36).substring(2, 9),
-        namaLantai: `Lantai ${nextIdx}`, 
+        namaLantai: `Lantai ${nextIdx}`,
         tipeLantai: "INDOOR",
         mejas: [
           { id: Math.random().toString(36).substring(2, 9), nomorMeja: "Meja 01", kapasitas: 4, x: 30, y: 40, tipeLantai: "INDOOR" },
@@ -359,7 +355,7 @@ export default function TambahTempatOwner() {
   };
 
   const handleChangeLantaiField = (floorIdx: number, field: "namaLantai" | "tipeLantai", value: string) => {
-    setLantaiData(prev => 
+    setLantaiData(prev =>
       prev.map((f, idx) => {
         if (idx !== floorIdx) return f;
         return { ...f, [field]: value };
@@ -372,7 +368,7 @@ export default function TambahTempatOwner() {
     const nextNum = floor.mejas.filter(m => m.tipeLantai === floor.tipeLantai).length + 1;
     const nomorMeja = `Meja ${nextNum < 10 ? '0' + nextNum : nextNum}`;
     const newMeja: MejaConfig = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: "temp-" + Math.random().toString(36).substring(2, 9), // temp id for client
       nomorMeja,
       kapasitas: 4,
       x: 35 + Math.random() * 30,
@@ -380,7 +376,7 @@ export default function TambahTempatOwner() {
       tipeLantai: floor.tipeLantai,
     };
     
-    setLantaiData(prev => 
+    setLantaiData(prev =>
       prev.map((f, idx) => {
         if (idx !== floorIdx) return f;
         return {
@@ -393,7 +389,7 @@ export default function TambahTempatOwner() {
   };
 
   const handleHapusMeja = (floorIdx: number, tableId: string) => {
-    setLantaiData(prev => 
+    setLantaiData(prev =>
       prev.map((f, idx) => {
         if (idx !== floorIdx) return f;
         return {
@@ -406,7 +402,7 @@ export default function TambahTempatOwner() {
   };
 
   const handleUpdateMeja = (floorIdx: number, tableIdx: number, field: keyof MejaConfig, value: any) => {
-    setLantaiData(prev => 
+    setLantaiData(prev =>
       prev.map((f, idx) => {
         if (idx !== floorIdx) return f;
         return {
@@ -423,7 +419,7 @@ export default function TambahTempatOwner() {
     );
   };
 
-  // --- HANDLER DRAG & MOVE (MOUSE & TOUCH) ---
+  // Drag mouse and touch functions
   const handleTableDrag = (e: React.MouseEvent, floorIdx: number, tableIdx: number) => {
     e.preventDefault();
     const container = e.currentTarget.parentElement;
@@ -440,11 +436,9 @@ export default function TambahTempatOwner() {
       let x = ((moveEvent.clientX - rect.left) / rect.width) * 100;
       let y = ((moveEvent.clientY - rect.top) / rect.height) * 100;
 
-      // Batasi koordinat antara 2% s.d. 92% agar tidak keluar grid visual
       x = Math.max(2, Math.min(92, x));
       y = Math.max(2, Math.min(90, y));
 
-      // Direct DOM update bypassing React renders for buttery smooth 120fps dragging
       target.style.left = `${x}%`;
       target.style.top = `${y}%`;
 
@@ -457,8 +451,7 @@ export default function TambahTempatOwner() {
       window.removeEventListener("mouseup", onMouseUp);
       setActiveDrag(null);
 
-      // Commit once to React state at the end
-      setLantaiData(prev => 
+      setLantaiData(prev =>
         prev.map((f, idx) => {
           if (idx !== floorIdx) return f;
           return {
@@ -500,7 +493,6 @@ export default function TambahTempatOwner() {
       x = Math.max(2, Math.min(92, x));
       y = Math.max(2, Math.min(90, y));
 
-      // Direct DOM update bypassing React renders for buttery smooth 120fps touch dragging
       target.style.left = `${x}%`;
       target.style.top = `${y}%`;
 
@@ -513,8 +505,7 @@ export default function TambahTempatOwner() {
       window.removeEventListener("touchend", onTouchEnd);
       setActiveDrag(null);
 
-      // Commit once to React state at the end
-      setLantaiData(prev => 
+      setLantaiData(prev =>
         prev.map((f, idx) => {
           if (idx !== floorIdx) return f;
           return {
@@ -537,12 +528,11 @@ export default function TambahTempatOwner() {
     window.addEventListener("touchend", onTouchEnd);
   };
 
-  // --- SUBMIT FORM ---
+  // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
 
-    // Validasi wajib
     if (!formData.nama_tempat || !formData.alamat || !formData.id_kampus) {
       setSubmitError("Nama Tempat, Alamat, dan Kampus wajib diisi.");
       return;
@@ -567,7 +557,6 @@ export default function TambahTempatOwner() {
 
     setIsLoading(true);
 
-    // Format jam_buka sebagai string "HH:mm - HH:mm"
     const jam_buka = `${formData.waktu_buka} - ${formData.waktu_tutup}`;
     const formattedPriceRange = `Rp ${Number(hargaMin).toLocaleString("id-ID")} - Rp ${Number(hargaMax).toLocaleString("id-ID")}`;
 
@@ -588,8 +577,7 @@ export default function TambahTempatOwner() {
         }))) : null,
         menu_gambar: menuGambarPath || null,
         kategori: formData.kategori,
-        fasilitas: fasilitas, // Kirim daftar fasilitas terpilih!
-        // Group and split floors by tipeLantai to isolate indoor and outdoor tables cleanly in the DB
+        fasilitas: fasilitas,
         lantaiData: lantaiData.flatMap(l => {
           const presentTypes = Array.from(new Set(l.mejas.map(m => m.tipeLantai || "INDOOR")));
           
@@ -607,6 +595,7 @@ export default function TambahTempatOwner() {
               namaLantai: l.namaLantai,
               tipeLantai: t,
               mejas: groupTables.map(m => ({
+                id: m.id,
                 nomorMeja: m.nomorMeja,
                 kapasitas: m.kapasitas,
                 x: m.x,
@@ -617,8 +606,8 @@ export default function TambahTempatOwner() {
         }).filter(l => l.mejas.length > 0),
       };
 
-      const res = await fetch("/api/tempat", {
-        method: "POST",
+      const res = await fetch(`/api/tempat/${id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -627,10 +616,9 @@ export default function TambahTempatOwner() {
 
       if (data.success) {
         setSubmitSuccess(true);
-        // Redirect ke dashboard setelah 1.5 detik
         setTimeout(() => router.push("/owner/dashboard"), 1500);
       } else {
-        setSubmitError(data.message || "Gagal menyimpan tempat. Coba lagi.");
+        setSubmitError(data.message || "Gagal mengupdate tempat. Coba lagi.");
       }
     } catch {
       setSubmitError("Koneksi bermasalah. Pastikan server berjalan.");
@@ -639,9 +627,17 @@ export default function TambahTempatOwner() {
     }
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
+  if (isFetching) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 size={36} className="animate-spin text-orange-500 mx-auto mb-4" />
+          <p className="text-gray-500 font-semibold">Memuat Data Tempat...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (submitSuccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -649,7 +645,7 @@ export default function TambahTempatOwner() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle size={32} className="text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Tempat Berhasil Ditambahkan!</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Tempat Berhasil Diperbarui!</h2>
           <p className="text-gray-500 text-sm">Mengalihkan ke Dashboard Owner...</p>
         </div>
       </div>
@@ -666,12 +662,11 @@ export default function TambahTempatOwner() {
             <ArrowLeft size={20} className="text-gray-600" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tambah Tempat Baru</h1>
-            <p className="text-gray-500 text-sm">Lengkapi detail tempat nongkrong Anda di bawah ini.</p>
+            <h1 className="text-2xl font-bold text-gray-900">Edit Tempat</h1>
+            <p className="text-gray-500 text-sm">Ubah detail tempat nongkrong Anda di bawah ini.</p>
           </div>
         </div>
 
-        {/* Error global */}
         {submitError && (
           <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-xl text-sm font-semibold flex items-center gap-2">
             ⚠️ {submitError}
@@ -680,7 +675,7 @@ export default function TambahTempatOwner() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* ==================== CARD 1: Informasi Dasar ==================== */}
+          {/* CARD 1: Informasi Dasar */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center space-x-2 mb-5 border-b pb-3">
               <Store className="text-orange-500" />
@@ -751,11 +746,10 @@ export default function TambahTempatOwner() {
                 </div>
               </div>
 
-              {/* Kampus Terdekat (Premium Searchable Select / Combobox dengan Leaflet Autopan) */}
+              {/* Kampus Terdekat Combobox */}
               <div className="space-y-2 relative">
                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Kampus Terdekat *</label>
                 
-                {/* Selector Button */}
                 <button
                   type="button"
                   onClick={() => setIsCampusDropdownOpen(!isCampusDropdownOpen)}
@@ -780,11 +774,8 @@ export default function TambahTempatOwner() {
                   <span className="text-gray-450 text-xs">▼</span>
                 </button>
 
-                {/* Dropdown Popover */}
                 {isCampusDropdownOpen && (
                   <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
-                    
-                    {/* Search Input Box */}
                     <div className="relative flex items-center">
                       <input
                         type="text"
@@ -805,7 +796,6 @@ export default function TambahTempatOwner() {
                       )}
                     </div>
 
-                    {/* Campuses Scrollable List */}
                     <div className="max-h-56 overflow-y-auto space-y-1 pr-0.5">
                       {(() => {
                         const filtered = TOP_20_KAMPUS.filter(c => 
@@ -860,7 +850,7 @@ export default function TambahTempatOwner() {
                 )}
               </div>
 
-              {/* Kisaran Harga (Manual Min-Max Input) */}
+              {/* Kisaran Harga */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Kisaran Harga *</label>
                 <div className="flex items-center gap-3">
@@ -933,7 +923,7 @@ export default function TambahTempatOwner() {
             </div>
           </div>
 
-          {/* ==================== CARD 2: Foto Tempat ==================== */}
+          {/* CARD 2: Foto Tempat */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center space-x-2 mb-5 border-b pb-3">
               <ImageIcon className="text-green-500" />
@@ -946,15 +936,9 @@ export default function TambahTempatOwner() {
               onUploaded={(path) => setGambarPath(path)}
               currentPath={gambarPath}
             />
-
-            {gambarPath && (
-              <p className="mt-2 text-xs text-green-600 font-semibold">
-                ✅ Tersimpan di: <span className="font-mono">{gambarPath}</span>
-              </p>
-            )}
           </div>
 
-          {/* ==================== CARD 2.5: Fasilitas Tempat ==================== */}
+          {/* CARD 2.5: Fasilitas Tempat */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center space-x-2 mb-5 border-b pb-3">
               <span className="text-lg">🛠️</span>
@@ -962,8 +946,6 @@ export default function TambahTempatOwner() {
             </div>
 
             <div className="space-y-4">
-              <p className="text-xs text-gray-400 font-medium">Tuliskan fasilitas yang tersedia di tempat Anda atau klik dari rekomendasi pilihan di bawah.</p>
-              
               <div className="space-y-2.5">
                 <div className="flex gap-2">
                   <input
@@ -1002,9 +984,8 @@ export default function TambahTempatOwner() {
                   </button>
                 </div>
 
-                {/* Rekomendasi Pilihan Populer */}
                 {REKOMENDASI_FASILITAS.filter(f => !fasilitas.includes(f)).length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1.5 animate-in fade-in duration-200">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mr-1">Rekomendasi Pilihan:</span>
                     {REKOMENDASI_FASILITAS.filter(f => !fasilitas.includes(f)).map((f, idx) => (
                       <button
@@ -1021,20 +1002,18 @@ export default function TambahTempatOwner() {
                 )}
               </div>
 
-              {/* Render Tags */}
               {fasilitas.length > 0 ? (
-                <div className="flex flex-wrap gap-2 pt-1.5 animate-in fade-in duration-200">
+                <div className="flex flex-wrap gap-2 pt-1.5">
                   {fasilitas.map((fasName, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 font-extrabold text-xs px-3.5 py-1.5 rounded-full shadow-sm transform hover:scale-102 transition"
+                      className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 font-extrabold text-xs px-3.5 py-1.5 rounded-full shadow-sm"
                     >
                       <span>✨ {fasName}</span>
                       <button
                         type="button"
                         onClick={() => setFasilitas(fasilitas.filter(x => x !== fasName))}
                         className="text-blue-400 hover:text-red-500 transition-colors font-extrabold text-[10px] pl-0.5 outline-none"
-                        title="Hapus"
                       >
                         ✕
                       </button>
@@ -1047,7 +1026,7 @@ export default function TambahTempatOwner() {
             </div>
           </div>
 
-          {/* ==================== CARD 3: Informasi Menu ==================== */}
+          {/* CARD 3: Informasi Menu */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center space-x-2 mb-5 border-b pb-3">
               <UtensilsCrossed className="text-purple-500" />
@@ -1056,14 +1035,12 @@ export default function TambahTempatOwner() {
             </div>
 
             <div className="space-y-4">
-              {/* Teks Menu */}
               <div className="space-y-3">
                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Daftar Menu Andalan *</label>
                 <div className="space-y-3">
                   {menuItems.map((item, idx) => (
                     <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm relative group">
                       
-                      {/* Nama Menu */}
                       <div className="w-full sm:flex-1 space-y-1">
                         <label className="text-[10px] font-bold text-gray-405 uppercase">Nama Menu *</label>
                         <input
@@ -1080,7 +1057,6 @@ export default function TambahTempatOwner() {
                         />
                       </div>
 
-                      {/* Keterangan */}
                       <div className="w-full sm:flex-[2] space-y-1">
                         <label className="text-[10px] font-bold text-gray-450 uppercase">Keterangan / Deskripsi</label>
                         <input
@@ -1096,7 +1072,6 @@ export default function TambahTempatOwner() {
                         />
                       </div>
 
-                      {/* Harga */}
                       <div className="w-full sm:w-36 space-y-1">
                         <label className="text-[10px] font-bold text-gray-450 uppercase">Harga (Rp) *</label>
                         <div className="relative">
@@ -1116,7 +1091,6 @@ export default function TambahTempatOwner() {
                         </div>
                       </div>
 
-                      {/* Hapus Item Button */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1127,7 +1101,6 @@ export default function TambahTempatOwner() {
                           }
                         }}
                         className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition self-end sm:self-center mt-2 sm:mt-4"
-                        title="Hapus Menu"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -1138,13 +1111,12 @@ export default function TambahTempatOwner() {
                 <button
                   type="button"
                   onClick={() => setMenuItems([...menuItems, { name: "", description: "", price: "" }])}
-                  className="flex items-center gap-1.5 text-xs font-extrabold text-purple-600 bg-purple-50 hover:bg-purple-100 px-4 py-2.5 rounded-xl shadow-sm transition-all"
+                  className="flex items-center gap-1.5 text-xs font-extrabold text-purple-600 bg-purple-50 hover:bg-purple-100 px-4 py-2.5 rounded-xl shadow-sm transition"
                 >
                   <Plus size={14} /> Tambah Item Menu
                 </button>
               </div>
 
-              {/* Foto Menu Upload */}
               <div className="border-t pt-4">
                 <ImageUploader
                   label="Foto Menu (Opsional jika sudah ada deskripsi teks)"
@@ -1152,16 +1124,11 @@ export default function TambahTempatOwner() {
                   onUploaded={(path) => setMenuGambarPath(path)}
                   currentPath={menuGambarPath}
                 />
-                {menuGambarPath && (
-                  <p className="mt-2 text-xs text-green-600 font-semibold">
-                    ✅ Tersimpan di: <span className="font-mono">{menuGambarPath}</span>
-                  </p>
-                )}
               </div>
             </div>
           </div>
 
-          {/* ==================== CARD 4: Layout Lantai & Meja ==================== */}
+          {/* CARD 4: Layout Lantai & Meja */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-5 border-b pb-3">
               <div className="flex items-center space-x-2">
@@ -1178,7 +1145,7 @@ export default function TambahTempatOwner() {
             </div>
 
             <p className="text-xs text-gray-400 mb-6 leading-relaxed">
-              Posisikan meja cafe Anda secara visual sesuai tata letak asli kafenya. Pelanggan akan memilih meja secara interaktif berdasarkan posisi meja yang Anda edit di bawah ini saat melakukan pemesanan (seperti memesan kursi bioskop).
+              Posisikan meja cafe Anda secara visual sesuai tata letak asli kafenya. Pelanggan akan memilih meja secara interaktif berdasarkan posisi meja yang Anda edit di bawah ini.
             </p>
 
             <div className="space-y-8">
@@ -1187,7 +1154,6 @@ export default function TambahTempatOwner() {
                 return (
                   <div key={lantai.id || `floor-${idx}`} className="p-5 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-4">
                   
-                  {/* Header Lantai & Tipe */}
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <input
@@ -1202,13 +1168,12 @@ export default function TambahTempatOwner() {
                           type="button"
                           onClick={() => handleHapusLantai(idx)}
                           className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition"
-                          title="Hapus Lantai"
                         >
                           <Trash2 size={18} />
                         </button>
                       )}
                     </div>
-                    {/* Selector Tipe Lantai (Indoor / Outdoor) */}
+
                     <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
                       <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
                         <button
@@ -1239,7 +1204,6 @@ export default function TambahTempatOwner() {
                         </button>
                       </div>
 
-                      {/* Pilihan Sub-tipe Outdoor */}
                       {lantai.tipeLantai.startsWith("OUTDOOR") && (
                         <div className="flex items-center gap-1 bg-amber-50/50 p-0.5 rounded-lg border border-amber-100 w-full sm:w-auto justify-between shadow-sm animate-in slide-in-from-top-1 duration-150">
                           {[
@@ -1266,69 +1230,59 @@ export default function TambahTempatOwner() {
                     </div>
                   </div>
 
-                  {/* Grid Layout Builder */}
-                  {(() => {
-                    const theme = getFloorTheme(lantai.tipeLantai);
-                    return (
-                      <div className="relative">
-                        <div 
-                          className={`w-full h-80 rounded-3xl border-2 relative overflow-hidden select-none cursor-crosshair shadow-inner transition-colors duration-300 ${theme.borderColor} ${theme.canvasBg}`}
-                          style={{
-                            backgroundImage: theme.gridLineStyle,
-                            backgroundSize: "20px 20px"
-                          }}
-                        >
-                          {/* Petunjuk Visual */}
-                          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg text-[9px] font-extrabold text-gray-500 uppercase tracking-wider border pointer-events-none shadow-sm flex items-center gap-1.5">
-                            <Settings size={11} className="animate-spin text-blue-600" />
-                            Drag meja ke posisi tata letak asli kafenya
-                          </div>
-
-                          {/* Badge Sub-tipe Aktif */}
-                          <div className={`absolute top-3 right-3 border px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm pointer-events-none ${theme.badge}`}>
-                            {theme.label}
-                          </div>
-
-                          {/* Reference Pintu Masuk di Sebelah Bawah */}
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white border-t-2 border-x-2 border-gray-200 rounded-t-2xl px-6 py-2 shadow-md text-[9px] font-black text-slate-500 tracking-widest flex items-center gap-2 select-none z-10 cursor-default hover:bg-slate-50 transition-colors">
-                            <span className="text-xs">🚪</span>
-                            <span>PINTU MASUK UTAMA / ENTRANCE</span>
-                          </div>
-                                        {/* Tampilkan meja-meja yang sesuai dengan sub-tipe aktif */}
-                          {lantai.mejas.map((meja, mIdx) => {
-                            if ((meja.tipeLantai || "INDOOR") !== lantai.tipeLantai) return null;
-                            const isSelected = selectedTableId === meja.id;
-                            const isDragging = activeDrag?.floorIdx === idx && activeDrag?.tableIdx === mIdx;
-
-                            return (
-                              <div
-                                key={`canvas-${meja.id}`}
-                                onMouseDown={(e) => handleTableDrag(e, idx, mIdx)}
-                                onTouchStart={(e) => handleTableTouch(e, idx, mIdx)}
-                                style={{ 
-                                  left: `${meja.x}%`, 
-                                  top: `${meja.y}%`, 
-                                  transform: "translate(-50%, -50%)" 
-                                }}
-                                className={`absolute w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center cursor-move select-none shadow-md ${
-                                  isSelected ? theme.tableActiveStyle : theme.tableStyle
-                                } ${
-                                  isDragging 
-                                    ? "opacity-80 border-dashed shadow-2xl cursor-grabbing scale-105 z-20" 
-                                    : "transition-all duration-200"
-                                }`}
-                              >
-                                <span className="text-[10px] font-black uppercase tracking-tighter leading-none">{meja.nomorMeja.replace("Meja ", "M")}</span>
-                                <span className="text-[9px] opacity-80 mt-0.5 leading-none">👤{meja.kapasitas}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
+                  <div className="relative">
+                    <div 
+                      className={`w-full h-80 rounded-3xl border-2 relative overflow-hidden select-none cursor-crosshair shadow-inner transition-colors duration-300 ${theme.borderColor} ${theme.canvasBg}`}
+                      style={{
+                        backgroundImage: theme.gridLineStyle,
+                        backgroundSize: "20px 20px"
+                      }}
+                    >
+                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg text-[9px] font-extrabold text-gray-500 uppercase tracking-wider border pointer-events-none shadow-sm flex items-center gap-1.5">
+                        <Settings size={11} className="animate-spin text-blue-600" />
+                        Drag meja ke posisi tata letak asli kafenya
                       </div>
-                    );
-                  })()}
 
-                  {/* Pengaturan Meja Terpilih & Daftar Meja */}
+                      <div className={`absolute top-3 right-3 border px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm pointer-events-none ${theme.badge}`}>
+                        {theme.label}
+                      </div>
+
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white border-t-2 border-x-2 border-gray-200 rounded-t-2xl px-6 py-2 shadow-md text-[9px] font-black text-slate-500 tracking-widest flex items-center gap-2 select-none z-10 cursor-default hover:bg-slate-50 transition-colors">
+                        <span className="text-xs">🚪</span>
+                        <span>PINTU MASUK UTAMA / ENTRANCE</span>
+                      </div>
+
+                      {lantai.mejas.map((meja, mIdx) => {
+                        if ((meja.tipeLantai || "INDOOR") !== lantai.tipeLantai) return null;
+                        const isSelected = selectedTableId === meja.id;
+                        const isDragging = activeDrag?.floorIdx === idx && activeDrag?.tableIdx === mIdx;
+
+                        return (
+                          <div
+                            key={`canvas-${meja.id}`}
+                            onMouseDown={(e) => handleTableDrag(e, idx, mIdx)}
+                            onTouchStart={(e) => handleTableTouch(e, idx, mIdx)}
+                            style={{
+                              left: `${meja.x}%`,
+                              top: `${meja.y}%`,
+                              transform: "translate(-50%, -50%)"
+                            }}
+                            className={`absolute w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center cursor-move select-none shadow-md ${
+                              isSelected ? theme.tableActiveStyle : theme.tableStyle
+                            } ${
+                              isDragging 
+                                ? "opacity-80 border-dashed shadow-2xl cursor-grabbing scale-105 z-20" 
+                                : "transition-all duration-200"
+                            }`}
+                          >
+                            <span className="text-[10px] font-black uppercase tracking-tighter leading-none">{meja.nomorMeja.replace("Meja ", "M")}</span>
+                            <span className="text-[9px] opacity-80 mt-0.5 leading-none">👤{meja.kapasitas}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-4">
                     <div className="flex justify-between items-center">
                       <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">Daftar Meja di {theme.label} {lantai.namaLantai}</h4>
@@ -1349,7 +1303,7 @@ export default function TambahTempatOwner() {
                           if ((meja.tipeLantai || "INDOOR") !== lantai.tipeLantai) return null;
                           const isSelected = selectedTableId === meja.id;
                           return (
-                            <div 
+                            <div
                               key={`list-${meja.id}`}
                               onClick={() => setSelectedTableId(meja.id)}
                               className={`p-3 rounded-xl border transition-all cursor-pointer flex justify-between items-center gap-2
@@ -1387,7 +1341,6 @@ export default function TambahTempatOwner() {
                                   handleHapusMeja(idx, meja.id);
                                 }}
                                 className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition"
-                                title="Hapus Meja"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -1403,7 +1356,7 @@ export default function TambahTempatOwner() {
             </div>
           </div>
 
-          {/* Tombol Submit */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}
@@ -1416,7 +1369,7 @@ export default function TambahTempatOwner() {
               </>
             ) : (
               <>
-                <Save size={20} /> Simpan Tempat Nongkrong
+                <Save size={20} /> Simpan Perubahan Tempat
               </>
             )}
           </button>

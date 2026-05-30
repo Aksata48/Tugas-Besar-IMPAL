@@ -145,14 +145,18 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
           {/* Fasilitas */}
           <div>
             <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Fasilitas Tersedia</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {tempat.fasilitas.map((item: any) => (
-                <div key={item.fasilitas.id_fasilitas} className="flex items-center gap-2 text-gray-700 bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
-                  <CheckCircle2 size={18} className="text-blue-500 shrink-0" />
-                  <span className="font-bold text-sm text-gray-600">{item.fasilitas.nama_fasilitas}</span>
-                </div>
-              ))}
-            </div>
+            {tempat.fasilitas && tempat.fasilitas.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {tempat.fasilitas.map((item: any) => (
+                  <div key={item.fasilitas.id_fasilitas} className="flex items-center gap-2 text-gray-700 bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                    <CheckCircle2 size={18} className="text-blue-500 shrink-0" />
+                    <span className="font-bold text-sm text-gray-600">{item.fasilitas.nama_fasilitas}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 italic">Belum ada informasi fasilitas khusus dari pengelola tempat.</p>
+            )}
           </div>
 
           {/* Menu & Andalan Kafe */}
@@ -168,9 +172,43 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
                       <BookOpen size={16} className="text-blue-500" /> Rekomendasi Menu
                     </h4>
                     <div className="bg-slate-50 p-4 rounded-xl border border-gray-150/50">
-                      <p className="text-gray-600 text-sm whitespace-pre-line font-medium leading-relaxed">
-                        {tempat.menu_text}
-                      </p>
+                      {tempat.menu_text.trim().startsWith("[") ? (
+                        (() => {
+                          try {
+                            const parsedItems = JSON.parse(tempat.menu_text);
+                            if (Array.isArray(parsedItems)) {
+                              return (
+                                <div className="space-y-3">
+                                  {parsedItems.map((item: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between items-start border-b border-gray-200/60 pb-2.5 last:border-b-0 last:pb-0">
+                                      <div className="space-y-0.5">
+                                        <p className="font-bold text-xs text-gray-800">{item.name}</p>
+                                        {item.description && (
+                                          <p className="text-[10px] text-gray-500 font-medium">{item.description}</p>
+                                        )}
+                                      </div>
+                                      <span className="text-xs font-extrabold text-green-600 shrink-0">
+                                        Rp {Number(item.price).toLocaleString("id-ID")}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            }
+                          } catch (e) {
+                            console.error(e);
+                          }
+                          return (
+                            <p className="text-gray-600 text-sm whitespace-pre-line font-medium leading-relaxed">
+                              {tempat.menu_text}
+                            </p>
+                          );
+                        })()
+                      ) : (
+                        <p className="text-gray-600 text-sm whitespace-pre-line font-medium leading-relaxed">
+                          {tempat.menu_text}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}

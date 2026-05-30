@@ -15,16 +15,160 @@ async function main() {
 
   console.log('Data lama berhasil dibersihkan.');
 
-  // 2. BUAT DATA KAMPUS
-  const kampusTelU = await prisma.kampus.create({
-    data: {
+  // 2. BUAT DATA KAMPUS (Top 20 Indonesia dengan koordinat geografis akurat)
+  const listKampus = [
+    {
       id_kampus: "KMP-TELU-01",
       nama_kampus: "Telkom University",
-      alamat_kampus: "Jl. Telekomunikasi No. 1, Terusan Buahbatu - Bojongsoang, Bandung",
+      alamat_kampus: "Jl. Telekomunikasi No. 1, Bojongsoang, Bandung, Jawa Barat",
       latitude: -6.9731,
       longitude: 107.6306,
     },
+    {
+      id_kampus: "KMP-UI-02",
+      nama_kampus: "Universitas Indonesia (UI)",
+      alamat_kampus: "Kampus UI Depok, Pondok Cina, Kec. Beji, Kota Depok, Jawa Barat",
+      latitude: -6.3606,
+      longitude: 106.8272,
+    },
+    {
+      id_kampus: "KMP-UGM-03",
+      nama_kampus: "Universitas Gadjah Mada (UGM)",
+      alamat_kampus: "Bulaksumur, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta",
+      latitude: -7.7681,
+      longitude: 110.3786,
+    },
+    {
+      id_kampus: "KMP-ITB-04",
+      nama_kampus: "Institut Teknologi Bandung (ITB)",
+      alamat_kampus: "Jl. Ganesa No. 10, Lb. Siliwangi, Kec. Coblong, Kota Bandung, Jawa Barat",
+      latitude: -6.8915,
+      longitude: 107.6106,
+    },
+    {
+      id_kampus: "KMP-IPB-05",
+      nama_kampus: "IPB University (IPB)",
+      alamat_kampus: "Jl. Raya Dramaga, Babakan, Kec. Dramaga, Kabupaten Bogor, Jawa Barat",
+      latitude: -6.5562,
+      longitude: 106.7243,
+    },
+    {
+      id_kampus: "KMP-UNAIR-06",
+      nama_kampus: "Universitas Airlangga (UNAIR)",
+      alamat_kampus: "Jl. Mayjen Prof. Dr. Moestopo No. 47, Pacar Kembang, Kec. Tambaksari, Kota Surabaya, Jawa Timur",
+      latitude: -7.2676,
+      longitude: 112.7844,
+    },
+    {
+      id_kampus: "KMP-ITS-07",
+      nama_kampus: "Institut Teknologi Sepuluh Nopember (ITS)",
+      alamat_kampus: "Jl. Teknik Kimia, Keputih, Kec. Sukolilo, Kota Surabaya, Jawa Timur",
+      latitude: -7.2824,
+      longitude: 112.7949,
+    },
+    {
+      id_kampus: "KMP-UNPAD-08",
+      nama_kampus: "Universitas Padjadjaran (UNPAD)",
+      alamat_kampus: "Jl. Raya Bandung Sumedang KM.21, Hegarmanah, Kec. Jatinangor, Kabupaten Sumedang, Jawa Barat",
+      latitude: -6.9265,
+      longitude: 107.7744,
+    },
+    {
+      id_kampus: "KMP-UNDIP-09",
+      nama_kampus: "Universitas Diponegoro (UNDIP)",
+      alamat_kampus: "Jl. Prof. Sudarto No. 13, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah",
+      latitude: -7.0494,
+      longitude: 110.4392,
+    },
+    {
+      id_kampus: "KMP-UB-10",
+      nama_kampus: "Universitas Brawijaya (UB)",
+      alamat_kampus: "Jl. Veteran, Ketawanggede, Kec. Lowokwaru, Kota Malang, Jawa Timur",
+      latitude: -7.9526,
+      longitude: 112.6144,
+    },
+    {
+      id_kampus: "KMP-UNHAS-11",
+      nama_kampus: "Universitas Hasanuddin (UNHAS)",
+      alamat_kampus: "Jl. Perintis Kemerdekaan KM.10, Tamalanrea Indah, Kec. Tamalanrea, Kota Makassar, Sulawesi Selatan",
+      latitude: -5.1328,
+      longitude: 119.4883,
+    },
+    {
+      id_kampus: "KMP-UNS-12",
+      nama_kampus: "Universitas Sebelas Maret (UNS)",
+      alamat_kampus: "Jl. Ir Sutami No. 36, Kentingan, Kec. Jebres, Kota Surakarta, Jawa Tengah",
+      latitude: -7.5587,
+      longitude: 110.8569,
+    },
+    {
+      id_kampus: "KMP-UPI-13",
+      nama_kampus: "Universitas Pendidikan Indonesia (UPI)",
+      alamat_kampus: "Jl. Dr. Setiabudi No. 229, Isola, Kec. Sukasari, Kota Bandung, Jawa Barat",
+      latitude: -6.8610,
+      longitude: 107.5946,
+    },
+    {
+      id_kampus: "KMP-USU-14",
+      nama_kampus: "Universitas Sumatera Utara (USU)",
+      alamat_kampus: "Jl. Dr. T. Mansur No. 9, Padang Bulan, Kec. Medan Baru, Kota Medan, Sumatera Utara",
+      latitude: 3.5649,
+      longitude: 98.6560,
+    },
+    {
+      id_kampus: "KMP-USK-15",
+      nama_kampus: "Universitas Syiah Kuala (USK)",
+      alamat_kampus: "Jl. Teuku Nyak Arief No. 441, Kopelma Darussalam, Kec. Syiah Kuala, Kota Banda Aceh, Aceh",
+      latitude: 5.5702,
+      longitude: 95.3695,
+    },
+    {
+      id_kampus: "KMP-UNAND-16",
+      nama_kampus: "Universitas Andalas (UNAND)",
+      alamat_kampus: "Limau Manis, Kec. Pauh, Kota Padang, Sumatera Barat",
+      latitude: -0.9141,
+      longitude: 100.4619,
+    },
+    {
+      id_kampus: "KMP-UNSRI-17",
+      nama_kampus: "Universitas Sriwijaya (UNSRI)",
+      alamat_kampus: "Jl. Raya Palembang - Prabumulih KM.32, Timbangan, Kec. Indralaya, Kabupaten Ogan Ilir, Sumatera Selatan",
+      latitude: -3.2185,
+      longitude: 104.6506,
+    },
+    {
+      id_kampus: "KMP-UNY-18",
+      nama_kampus: "Universitas Negeri Yogyakarta (UNY)",
+      alamat_kampus: "Jl. Colombo No. 1, Karang Malang, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta",
+      latitude: -7.7736,
+      longitude: 110.3868,
+    },
+    {
+      id_kampus: "KMP-BINUS-19",
+      nama_kampus: "Universitas Bina Nusantara (BINUS)",
+      alamat_kampus: "Jl. K. H. Syahdan No. 9, Palmerah, Kec. Palmerah, Kota Jakarta Barat, Daerah Khusus Ibukota Jakarta",
+      latitude: -6.2241,
+      longitude: 106.7826,
+    },
+    {
+      id_kampus: "KMP-UMY-20",
+      nama_kampus: "Universitas Muhammadiyah Yogyakarta (UMY)",
+      alamat_kampus: "Jl. Brawijaya, Geblagan, Tamantirto, Kec. Kasihan, Kabupaten Bantul, Daerah Istimewa Yogyakarta",
+      latitude: -7.8118,
+      longitude: 110.3218,
+    }
+  ];
+
+  for (const k of listKampus) {
+    await prisma.kampus.create({ data: k });
+  }
+
+  const kampusTelU = await prisma.kampus.findUnique({
+    where: { id_kampus: "KMP-TELU-01" },
   });
+  if (!kampusTelU) {
+    throw new Error("Telkom University campus KMP-TELU-01 failed to seed.");
+  }
 
   // 3. BUAT DATA KATEGORI
   const katKafe = await prisma.kategori.create({ data: { id_kategori: "KAT-1", nama_kategori: "Kafe" } });
