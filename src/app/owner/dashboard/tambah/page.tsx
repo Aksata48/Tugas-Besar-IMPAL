@@ -19,13 +19,109 @@ interface MejaConfig {
   kapasitas: number;
   x: number; // Koordinat X (%) di grid
   y: number; // Koordinat Y (%) di grid
+  tipeLantai?: string; // INDOOR / OUTDOOR_BALKON / OUTDOOR_ROOFTOP / OUTDOOR_TAMAN / OUTDOOR_TERAS
 }
 
 interface LantaiConfig {
+  id?: string;
   namaLantai: string;
-  tipeLantai: "INDOOR" | "OUTDOOR";
+  tipeLantai: string; // INDOOR / OUTDOOR_BALKON / OUTDOOR_ROOFTOP / OUTDOOR_TAMAN / OUTDOOR_TERAS
   mejas: MejaConfig[];
 }
+
+export const getFloorTheme = (tipe: string) => {
+  switch (tipe) {
+    case "OUTDOOR_BALKON":
+      return {
+        gridColor: "rgba(245, 158, 11, 0.08)", // amber
+        borderColor: "border-amber-200",
+        headerBg: "bg-amber-50/20",
+        badge: "bg-amber-50 text-amber-700 border-amber-200",
+        label: "Outdoor (Balkon)",
+        canvasBg: "bg-amber-50/10",
+        dotColor: "rgba(245, 158, 11, 0.12)",
+        tableStyle: "bg-gradient-to-br from-amber-400 to-amber-600 text-white border-amber-600 shadow-md shadow-amber-200/50 hover:scale-105 hover:shadow-lg",
+        tableActiveStyle: "bg-gradient-to-br from-orange-500 to-orange-600 text-white border-orange-700 ring-4 ring-orange-100 z-10 font-extrabold scale-110",
+        gridLineStyle: "linear-gradient(rgba(245, 158, 11, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(245, 158, 11, 0.08) 1px, transparent 1px)"
+      };
+    case "OUTDOOR_ROOFTOP":
+      return {
+        gridColor: "rgba(249, 115, 22, 0.08)", // orange
+        borderColor: "border-orange-200",
+        headerBg: "bg-orange-50/20",
+        badge: "bg-orange-50 text-orange-700 border-orange-200",
+        label: "Outdoor (Rooftop)",
+        canvasBg: "bg-orange-50/10",
+        dotColor: "rgba(249, 115, 22, 0.12)",
+        tableStyle: "bg-gradient-to-br from-orange-400 to-orange-600 text-white border-orange-600 shadow-md shadow-orange-200/50 hover:scale-105 hover:shadow-lg",
+        tableActiveStyle: "bg-gradient-to-br from-red-500 to-red-600 text-white border-red-700 ring-4 ring-red-100 z-10 font-extrabold scale-110",
+        gridLineStyle: "linear-gradient(rgba(249, 115, 22, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(249, 115, 22, 0.08) 1px, transparent 1px)"
+      };
+    case "OUTDOOR_TAMAN":
+      return {
+        gridColor: "rgba(16, 185, 129, 0.08)", // emerald
+        borderColor: "border-emerald-250",
+        headerBg: "bg-emerald-50/20",
+        badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        label: "Outdoor (Taman)",
+        canvasBg: "bg-emerald-50/10",
+        dotColor: "rgba(16, 185, 129, 0.12)",
+        tableStyle: "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-200/50 hover:scale-105 hover:shadow-lg",
+        tableActiveStyle: "bg-gradient-to-br from-teal-500 to-teal-600 text-white border-teal-700 ring-4 ring-teal-100 z-10 font-extrabold scale-110",
+        gridLineStyle: "linear-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.08) 1px, transparent 1px)"
+      };
+    case "OUTDOOR_TERAS":
+      return {
+        gridColor: "rgba(20, 184, 166, 0.08)", // teal
+        borderColor: "border-teal-250",
+        headerBg: "bg-teal-50/20",
+        badge: "bg-teal-50 text-teal-700 border-teal-200",
+        label: "Outdoor (Teras)",
+        canvasBg: "bg-teal-50/10",
+        dotColor: "rgba(20, 184, 166, 0.12)",
+        tableStyle: "bg-gradient-to-br from-teal-400 to-teal-600 text-white border-teal-600 shadow-md shadow-teal-200/50 hover:scale-105 hover:shadow-lg",
+        tableActiveStyle: "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-100 z-10 font-extrabold scale-110",
+        gridLineStyle: "linear-gradient(rgba(20, 184, 166, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(20, 184, 166, 0.08) 1px, transparent 1px)"
+      };
+    case "INDOOR":
+    default:
+      return {
+        gridColor: "rgba(59, 130, 246, 0.05)", // blue
+        borderColor: "border-blue-200",
+        headerBg: "bg-slate-50",
+        badge: "bg-blue-50 text-blue-700 border-blue-100",
+        label: "Indoor",
+        canvasBg: "bg-slate-50",
+        dotColor: "rgba(59, 130, 246, 0.05)",
+        tableStyle: "bg-white text-blue-700 border-blue-600 hover:border-orange-500 hover:scale-105 hover:shadow-lg",
+        tableActiveStyle: "bg-orange-500 text-white border-orange-600 ring-4 ring-orange-100 z-10 font-extrabold scale-110",
+        gridLineStyle: "linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px)"
+      };
+  }
+};
+
+export const TOP_20_KAMPUS = [
+  { id: "KMP-TELU-01", label: "Telkom University (Tel-U)", city: "Bandung", lat: -6.9731, lng: 107.6306 },
+  { id: "KMP-UI-02", label: "Universitas Indonesia (UI)", city: "Depok", lat: -6.3606, lng: 106.8272 },
+  { id: "KMP-UGM-03", label: "Universitas Gadjah Mada (UGM)", city: "Yogyakarta", lat: -7.7681, lng: 110.3786 },
+  { id: "KMP-ITB-04", label: "Institut Teknologi Bandung (ITB)", city: "Bandung", lat: -6.8915, lng: 107.6106 },
+  { id: "KMP-IPB-05", label: "IPB University (IPB)", city: "Bogor", lat: -6.5562, lng: 106.7243 },
+  { id: "KMP-UNAIR-06", label: "Universitas Airlangga (UNAIR)", city: "Surabaya", lat: -7.2676, lng: 112.7844 },
+  { id: "KMP-ITS-07", label: "Institut Teknologi Sepuluh Nopember (ITS)", city: "Surabaya", lat: -7.2824, lng: 112.7949 },
+  { id: "KMP-UNPAD-08", label: "Universitas Padjadjaran (UNPAD)", city: "Sumedang", lat: -6.9265, lng: 107.7744 },
+  { id: "KMP-UNDIP-09", label: "Universitas Diponegoro (UNDIP)", city: "Semarang", lat: -7.0494, lng: 110.4392 },
+  { id: "KMP-UB-10", label: "Universitas Brawijaya (UB)", city: "Malang", lat: -7.9526, lng: 112.6144 },
+  { id: "KMP-UNHAS-11", label: "Universitas Hasanuddin (UNHAS)", city: "Makassar", lat: -5.1328, lng: 119.4883 },
+  { id: "KMP-UNS-12", label: "Universitas Sebelas Maret (UNS)", city: "Surakarta", lat: -7.5587, lng: 110.8569 },
+  { id: "KMP-UPI-13", label: "Universitas Pendidikan Indonesia (UPI)", city: "Bandung", lat: -6.8610, lng: 107.5946 },
+  { id: "KMP-USU-14", label: "Universitas Sumatera Utara (USU)", city: "Medan", lat: 3.5649, lng: 98.6560 },
+  { id: "KMP-USK-15", label: "Universitas Syiah Kuala (USK)", city: "Aceh", lat: 5.5702, lng: 95.3695 },
+  { id: "KMP-UNAND-16", label: "Universitas Andalas (UNAND)", city: "Padang", lat: -0.9141, lng: 100.4619 },
+  { id: "KMP-UNSRI-17", label: "Universitas Sriwijaya (UNSRI)", city: "Palembang", lat: -3.2185, lng: 104.6506 },
+  { id: "KMP-UNY-18", label: "Universitas Negeri Yogyakarta (UNY)", city: "Yogyakarta", lat: -7.7736, lng: 110.3868 },
+  { id: "KMP-BINUS-19", label: "Universitas Bina Nusantara (BINUS)", city: "Jakarta", lat: -6.2241, lng: 106.7826 },
+  { id: "KMP-UMY-20", label: "Universitas Muhammadiyah Yogyakarta (UMY)", city: "Yogyakarta", lat: -7.8118, lng: 110.3218 }
+];
 
 // ============================================================
 // Komponen ImageUploader — reusable untuk upload 1 foto
@@ -180,6 +276,9 @@ export default function TambahTempatOwner() {
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  const [campusSearch, setCampusSearch] = useState("");
+  const [isCampusDropdownOpen, setIsCampusDropdownOpen] = useState(false);
+
   // 1. STATE DATA UMUM
   const [formData, setFormData] = useState({
     nama_tempat: "",
@@ -201,14 +300,15 @@ export default function TambahTempatOwner() {
   // 3. STATE LANTAI & MEJA (Layout Visual - Meja diposisikan secara custom)
   const [lantaiData, setLantaiData] = useState<LantaiConfig[]>([
     { 
+      id: "f1",
       namaLantai: "Lantai 1", 
       tipeLantai: "INDOOR",
       mejas: [
-        { id: "m1", nomorMeja: "Meja 01", kapasitas: 4, x: 20, y: 25 },
-        { id: "m2", nomorMeja: "Meja 02", kapasitas: 4, x: 50, y: 25 },
-        { id: "m3", nomorMeja: "Meja 03", kapasitas: 4, x: 80, y: 25 },
-        { id: "m4", nomorMeja: "Meja 04", kapasitas: 2, x: 35, y: 65 },
-        { id: "m5", nomorMeja: "Meja 05", kapasitas: 2, x: 65, y: 65 },
+        { id: "m1", nomorMeja: "Meja 01", kapasitas: 4, x: 20, y: 25, tipeLantai: "INDOOR" },
+        { id: "m2", nomorMeja: "Meja 02", kapasitas: 4, x: 50, y: 25, tipeLantai: "INDOOR" },
+        { id: "m3", nomorMeja: "Meja 03", kapasitas: 4, x: 80, y: 25, tipeLantai: "INDOOR" },
+        { id: "m4", nomorMeja: "Meja 04", kapasitas: 2, x: 35, y: 65, tipeLantai: "INDOOR" },
+        { id: "m5", nomorMeja: "Meja 05", kapasitas: 2, x: 65, y: 65, tipeLantai: "INDOOR" },
       ]
     },
   ]);
@@ -223,11 +323,12 @@ export default function TambahTempatOwner() {
     setLantaiData([
       ...lantaiData,
       { 
+        id: Math.random().toString(36).substring(2, 9),
         namaLantai: `Lantai ${nextIdx}`, 
         tipeLantai: "INDOOR",
         mejas: [
-          { id: Math.random().toString(36).substring(2, 9), nomorMeja: "Meja 01", kapasitas: 4, x: 30, y: 40 },
-          { id: Math.random().toString(36).substring(2, 9), nomorMeja: "Meja 02", kapasitas: 4, x: 70, y: 40 }
+          { id: Math.random().toString(36).substring(2, 9), nomorMeja: "Meja 01", kapasitas: 4, x: 30, y: 40, tipeLantai: "INDOOR" },
+          { id: Math.random().toString(36).substring(2, 9), nomorMeja: "Meja 02", kapasitas: 4, x: 70, y: 40, tipeLantai: "INDOOR" }
         ]
       },
     ]);
@@ -245,7 +346,7 @@ export default function TambahTempatOwner() {
 
   const handleTambahMeja = (floorIdx: number) => {
     const floor = lantaiData[floorIdx];
-    const nextNum = floor.mejas.length + 1;
+    const nextNum = floor.mejas.filter(m => m.tipeLantai === floor.tipeLantai).length + 1;
     const nomorMeja = `Meja ${nextNum < 10 ? '0' + nextNum : nextNum}`;
     const newMeja: MejaConfig = {
       id: Math.random().toString(36).substring(2, 9),
@@ -253,6 +354,7 @@ export default function TambahTempatOwner() {
       kapasitas: 4,
       x: 35 + Math.random() * 30,
       y: 35 + Math.random() * 30,
+      tipeLantai: floor.tipeLantai,
     };
     
     setLantaiData(prev => {
@@ -389,17 +491,32 @@ export default function TambahTempatOwner() {
         menu_text: menuText.trim() || null,
         menu_gambar: menuGambarPath || null,
         kategori: formData.kategori,
-        // Format lantaiData visual agar kompatibel dengan API baru
-        lantaiData: lantaiData.filter((l) => l.namaLantai.trim() && l.mejas.length > 0).map(l => ({
-          namaLantai: l.namaLantai,
-          tipeLantai: l.tipeLantai,
-          mejas: l.mejas.map(m => ({
-            nomorMeja: m.nomorMeja,
-            kapasitas: m.kapasitas,
-            x: m.x,
-            y: m.y
-          }))
-        })),
+        // Group and split floors by tipeLantai to isolate indoor and outdoor tables cleanly in the DB
+        lantaiData: lantaiData.flatMap(l => {
+          const presentTypes = Array.from(new Set(l.mejas.map(m => m.tipeLantai || "INDOOR")));
+          
+          if (presentTypes.length === 0) {
+            return [{
+              namaLantai: l.namaLantai,
+              tipeLantai: l.tipeLantai,
+              mejas: []
+            }];
+          }
+
+          return presentTypes.map(t => {
+            const groupTables = l.mejas.filter(m => (m.tipeLantai || "INDOOR") === t);
+            return {
+              namaLantai: l.namaLantai,
+              tipeLantai: t,
+              mejas: groupTables.map(m => ({
+                nomorMeja: m.nomorMeja,
+                kapasitas: m.kapasitas,
+                x: m.x,
+                y: m.y
+              }))
+            };
+          });
+        }).filter(l => l.mejas.length > 0),
       };
 
       const res = await fetch("/api/tempat", {
@@ -536,32 +653,113 @@ export default function TambahTempatOwner() {
                 </div>
               </div>
 
-              {/* Kampus Terdekat (Visual Badges) */}
-              <div className="space-y-2">
+              {/* Kampus Terdekat (Premium Searchable Select / Combobox dengan Leaflet Autopan) */}
+              <div className="space-y-2 relative">
                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Kampus Terdekat *</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { id: "KMP-TELU-01", label: "Telkom University" },
-                    { id: "KMP-ITB-01", label: "ITB Bandung" }
-                  ].map((campus) => {
-                    const isSelected = formData.id_kampus === campus.id;
-                    return (
-                      <button
-                        key={campus.id}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, id_kampus: campus.id })}
-                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 text-center outline-none hover:scale-102
-                          ${isSelected
-                            ? "border-blue-600 bg-blue-50 text-blue-700 font-extrabold shadow-sm ring-4 ring-blue-50"
-                            : "border-gray-250 bg-gray-50 text-gray-500 hover:border-gray-355 hover:bg-gray-100/50"
-                          }`}
-                      >
-                        <GraduationCap size={20} className={isSelected ? "text-blue-600" : "text-gray-400"} />
-                        <span className="text-xs font-bold">{campus.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                
+                {/* Selector Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsCampusDropdownOpen(!isCampusDropdownOpen)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:border-orange-500 hover:bg-white transition text-left outline-none focus:ring-2 focus:ring-orange-100"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <GraduationCap className="text-gray-400" size={18} />
+                    {formData.id_kampus ? (
+                      (() => {
+                        const active = TOP_20_KAMPUS.find(c => c.id === formData.id_kampus);
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-gray-800">{active?.label}</span>
+                            <span className="text-[9px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold border border-blue-100">{active?.city}</span>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <span className="text-sm text-gray-400 font-medium">-- Pilih Kampus Terdekat --</span>
+                    )}
+                  </div>
+                  <span className="text-gray-450 text-xs">▼</span>
+                </button>
+
+                {/* Dropdown Popover */}
+                {isCampusDropdownOpen && (
+                  <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+                    
+                    {/* Search Input Box */}
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        value={campusSearch}
+                        onChange={(e) => setCampusSearch(e.target.value)}
+                        placeholder="Cari nama kampus atau kota..."
+                        className="w-full pl-3 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:border-orange-500 focus:bg-white outline-none transition"
+                        autoFocus
+                      />
+                      {campusSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setCampusSearch("")}
+                          className="absolute right-3 text-gray-400 hover:text-gray-700 text-xs font-bold"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Campuses Scrollable List */}
+                    <div className="max-h-56 overflow-y-auto space-y-1 pr-0.5">
+                      {(() => {
+                        const filtered = TOP_20_KAMPUS.filter(c => 
+                          c.label.toLowerCase().includes(campusSearch.toLowerCase()) ||
+                          c.city.toLowerCase().includes(campusSearch.toLowerCase())
+                        );
+
+                        if (filtered.length === 0) {
+                          return (
+                            <p className="text-center text-xs text-gray-400 py-3 italic">Kampus tidak ditemukan.</p>
+                          );
+                        }
+
+                        return filtered.map(c => {
+                          const isSelected = formData.id_kampus === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  id_kampus: c.id,
+                                  latitude: c.lat,
+                                  longitude: c.lng
+                                }));
+                                setIsCampusDropdownOpen(false);
+                                setCampusSearch("");
+                              }}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl transition text-left text-xs font-bold outline-none
+                                ${isSelected 
+                                  ? "bg-orange-50 border border-orange-100 text-orange-700 font-extrabold" 
+                                  : "hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                                }
+                              `}
+                            >
+                              <div className="flex items-center gap-2">
+                                <GraduationCap size={14} className={isSelected ? "text-orange-500" : "text-gray-400"} />
+                                <span>{c.label}</span>
+                              </div>
+                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${
+                                isSelected 
+                                  ? "bg-orange-100/70 border-orange-200 text-orange-800" 
+                                  : "bg-gray-50 border-gray-200 text-gray-500"
+                              }`}>{c.city}</span>
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Kisaran Harga (Visual Pills) */}
@@ -716,8 +914,10 @@ export default function TambahTempatOwner() {
             </p>
 
             <div className="space-y-8">
-              {lantaiData.map((lantai, idx) => (
-                <div key={idx} className="p-5 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-4">
+              {lantaiData.map((lantai, idx) => {
+                const theme = getFloorTheme(lantai.tipeLantai);
+                return (
+                  <div key={lantai.id || `floor-${idx}`} className="p-5 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-4">
                   
                   {/* Header Lantai & Tipe */}
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
@@ -740,84 +940,126 @@ export default function TambahTempatOwner() {
                         </button>
                       )}
                     </div>
-
                     {/* Selector Tipe Lantai (Indoor / Outdoor) */}
-                    <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
-                      <button
-                        type="button"
-                        onClick={() => handleChangeLantaiField(idx, "tipeLantai", "INDOOR")}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all w-1/2 sm:w-auto justify-center ${
-                          lantai.tipeLantai === "INDOOR"
-                            ? "bg-white text-blue-600 shadow-sm"
-                            : "text-gray-500 hover:text-gray-900"
-                        }`}
-                      >
-                        <Home size={14} /> Indoor
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChangeLantaiField(idx, "tipeLantai", "OUTDOOR")}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all w-1/2 sm:w-auto justify-center ${
-                          lantai.tipeLantai === "OUTDOOR"
-                            ? "bg-white text-orange-600 shadow-sm"
-                            : "text-gray-500 hover:text-gray-900"
-                        }`}
-                      >
-                        <Sun size={14} /> Outdoor
-                      </button>
+                    <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+                      <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleChangeLantaiField(idx, "tipeLantai", "INDOOR")}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all w-1/2 sm:w-auto justify-center ${
+                            lantai.tipeLantai === "INDOOR"
+                              ? "bg-white text-blue-600 shadow-sm"
+                              : "text-gray-500 hover:text-gray-900"
+                          }`}
+                        >
+                          <Home size={14} /> Indoor
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!lantai.tipeLantai.startsWith("OUTDOOR")) {
+                              handleChangeLantaiField(idx, "tipeLantai", "OUTDOOR_ROOFTOP");
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all w-1/2 sm:w-auto justify-center ${
+                            lantai.tipeLantai.startsWith("OUTDOOR")
+                              ? "bg-white text-orange-600 shadow-sm"
+                              : "text-gray-500 hover:text-gray-900"
+                          }`}
+                        >
+                          <Sun size={14} /> Outdoor
+                        </button>
+                      </div>
+
+                      {/* Pilihan Sub-tipe Outdoor */}
+                      {lantai.tipeLantai.startsWith("OUTDOOR") && (
+                        <div className="flex items-center gap-1 bg-amber-50/50 p-0.5 rounded-lg border border-amber-100 w-full sm:w-auto justify-between shadow-sm animate-in slide-in-from-top-1 duration-150">
+                          {[
+                            { value: "OUTDOOR_BALKON", label: "Balkon" },
+                            { value: "OUTDOOR_ROOFTOP", label: "Rooftop" },
+                            { value: "OUTDOOR_TAMAN", label: "Taman" },
+                            { value: "OUTDOOR_TERAS", label: "Teras" }
+                          ].map(sub => (
+                            <button
+                              key={sub.value}
+                              type="button"
+                              onClick={() => handleChangeLantaiField(idx, "tipeLantai", sub.value)}
+                              className={`px-2 py-1 rounded-md text-[9px] font-black transition-all ${
+                                lantai.tipeLantai === sub.value
+                                  ? "bg-amber-500 text-white shadow-sm"
+                                  : "text-amber-750 hover:bg-amber-100/70"
+                              }`}
+                            >
+                              {sub.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Grid Layout Builder */}
-                  <div className="relative">
-                    <div 
-                      className="w-full h-80 rounded-2xl border border-gray-200 bg-slate-50 relative overflow-hidden select-none cursor-crosshair shadow-inner"
-                      style={{
-                        backgroundImage: "linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px)",
-                        backgroundSize: "20px 20px"
-                      }}
-                    >
-                      {/* Petunjuk Visual */}
-                      <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-extrabold text-gray-500 uppercase tracking-wider border pointer-events-none shadow-sm flex items-center gap-1.5">
-                        <Settings size={12} className="animate-spin text-blue-600" />
-                        Gunakan Mouse/Sentuhan untuk menyeret meja
-                      </div>
-
-                      {/* Tampilkan meja-meja */}
-                      {lantai.mejas.map((meja, mIdx) => {
-                        const isSelected = selectedTableId === meja.id;
-                        const isDragging = activeDrag?.floorIdx === idx && activeDrag?.tableIdx === mIdx;
-
-                        return (
-                          <div
-                            key={meja.id}
-                            onMouseDown={(e) => handleTableDrag(e, idx, mIdx)}
-                            onTouchStart={(e) => handleTableTouch(e, idx, mIdx)}
-                            style={{ 
-                              left: `${meja.x}%`, 
-                              top: `${meja.y}%`, 
-                              transform: "translate(-50%, -50%)" 
-                            }}
-                            className={`absolute w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center cursor-move transition-shadow duration-150 select-none shadow-md
-                              ${isSelected 
-                                ? "bg-orange-500 text-white border-orange-600 ring-4 ring-orange-100 font-extrabold scale-110 z-10" 
-                                : "bg-white text-blue-700 border-blue-600 hover:border-orange-500 hover:scale-105 hover:shadow-lg"
-                              }
-                              ${isDragging ? "opacity-80 border-dashed shadow-2xl cursor-grabbing" : ""}
-                            `}
-                          >
-                            <span className="text-[10px] font-black uppercase tracking-tighter leading-none">{meja.nomorMeja.replace("Meja ", "M")}</span>
-                            <span className="text-[9px] opacity-80 mt-0.5 leading-none">👤{meja.kapasitas}</span>
+                  {(() => {
+                    const theme = getFloorTheme(lantai.tipeLantai);
+                    return (
+                      <div className="relative">
+                        <div 
+                          className={`w-full h-80 rounded-3xl border-2 relative overflow-hidden select-none cursor-crosshair shadow-inner transition-colors duration-300 ${theme.borderColor} ${theme.canvasBg}`}
+                          style={{
+                            backgroundImage: theme.gridLineStyle,
+                            backgroundSize: "20px 20px"
+                          }}
+                        >
+                          {/* Petunjuk Visual */}
+                          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg text-[9px] font-extrabold text-gray-500 uppercase tracking-wider border pointer-events-none shadow-sm flex items-center gap-1.5">
+                            <Settings size={11} className="animate-spin text-blue-600" />
+                            Drag meja ke posisi tata letak asli kafenya
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+
+                          {/* Badge Sub-tipe Aktif */}
+                          <div className={`absolute top-3 right-3 border px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm pointer-events-none ${theme.badge}`}>
+                            {theme.label}
+                          </div>
+
+                          {/* Reference Pintu Masuk di Sebelah Bawah */}
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white border-t-2 border-x-2 border-gray-200 rounded-t-2xl px-6 py-2 shadow-md text-[9px] font-black text-slate-500 tracking-widest flex items-center gap-2 select-none z-10 cursor-default hover:bg-slate-50 transition-colors">
+                            <span className="text-xs">🚪</span>
+                            <span>PINTU MASUK UTAMA / ENTRANCE</span>
+                          </div>
+                                        {/* Tampilkan meja-meja yang sesuai dengan sub-tipe aktif */}
+                          {lantai.mejas.map((meja, mIdx) => {
+                            if ((meja.tipeLantai || "INDOOR") !== lantai.tipeLantai) return null;
+                            const isSelected = selectedTableId === meja.id;
+                            const isDragging = activeDrag?.floorIdx === idx && activeDrag?.tableIdx === mIdx;
+
+                            return (
+                              <div
+                                key={meja.id}
+                                onMouseDown={(e) => handleTableDrag(e, idx, mIdx)}
+                                onTouchStart={(e) => handleTableTouch(e, idx, mIdx)}
+                                style={{ 
+                                  left: `${meja.x}%`, 
+                                  top: `${meja.y}%`, 
+                                  transform: "translate(-50%, -50%)" 
+                                }}
+                                className={`absolute w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center cursor-move transition-all duration-150 select-none shadow-md ${
+                                  isSelected ? theme.tableActiveStyle : theme.tableStyle
+                                } ${isDragging ? "opacity-80 border-dashed shadow-2xl cursor-grabbing" : ""}`}
+                              >
+                                <span className="text-[10px] font-black uppercase tracking-tighter leading-none">{meja.nomorMeja.replace("Meja ", "M")}</span>
+                                <span className="text-[9px] opacity-80 mt-0.5 leading-none">👤{meja.kapasitas}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Pengaturan Meja Terpilih & Daftar Meja */}
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-4">
                     <div className="flex justify-between items-center">
-                      <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">Daftar Meja di {lantai.namaLantai}</h4>
+                      <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">Daftar Meja di {theme.label} {lantai.namaLantai}</h4>
                       <button
                         type="button"
                         onClick={() => handleTambahMeja(idx)}
@@ -827,11 +1069,12 @@ export default function TambahTempatOwner() {
                       </button>
                     </div>
 
-                    {lantai.mejas.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-2 italic">Belum ada meja di lantai ini. Klik 'Tambah Meja' untuk menambahkan.</p>
+                    {lantai.mejas.filter(m => (m.tipeLantai || "INDOOR") === lantai.tipeLantai).length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-2 italic">Belum ada meja di area ini. Klik 'Tambah Meja' untuk menambahkan.</p>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-52 overflow-y-auto pr-1">
                         {lantai.mejas.map((meja, mIdx) => {
+                          if ((meja.tipeLantai || "INDOOR") !== lantai.tipeLantai) return null;
                           const isSelected = selectedTableId === meja.id;
                           return (
                             <div 
@@ -882,9 +1125,9 @@ export default function TambahTempatOwner() {
                       </div>
                     )}
                   </div>
-
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
