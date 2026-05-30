@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import {
   Store, MapPin, Image as ImageIcon, UtensilsCrossed,
   Plus, Trash2, Save, ArrowLeft, Upload, CheckCircle, Loader2,
-  Sun, Home, Sliders, Settings
+  Sun, Home, Sliders, Settings, Coffee, Beer, Utensils, Laptop,
+  GraduationCap
 } from "lucide-react";
 import Link from "next/link";
 import TempatMap from "@/components/Map";
@@ -471,100 +472,147 @@ export default function TambahTempatOwner() {
               <h2 className="text-lg font-bold text-gray-800">Informasi Dasar</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
               {/* Nama Tempat */}
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-xs font-bold text-gray-600 uppercase">Nama Tempat *</label>
-                <input
-                  type="text"
-                  value={formData.nama_tempat}
-                  onChange={(e) => setFormData({ ...formData, nama_tempat: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition"
-                  placeholder="Contoh: Plumeria Cafe"
-                  required
-                />
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Nama Tempat *</label>
+                <div className="relative flex items-center">
+                  <Store className="absolute left-4 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    value={formData.nama_tempat}
+                    onChange={(e) => setFormData({ ...formData, nama_tempat: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:bg-white outline-none transition focus:ring-2 focus:ring-orange-100 font-medium text-sm text-gray-800"
+                    placeholder="Contoh: Plumeria Cafe"
+                    required
+                  />
+                </div>
               </div>
 
               {/* Alamat */}
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-xs font-bold text-gray-600 uppercase">Alamat Lengkap *</label>
-                <input
-                  type="text"
-                  value={formData.alamat}
-                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition"
-                  placeholder="Jl. Contoh No. 1, Bandung"
-                  required
-                />
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Alamat Lengkap *</label>
+                <div className="relative flex items-center">
+                  <MapPin className="absolute left-4 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    value={formData.alamat}
+                    onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:bg-white outline-none transition focus:ring-2 focus:ring-orange-100 font-medium text-sm text-gray-800"
+                    placeholder="Jl. Telekomunikasi No. 1, Bojongsoang, Bandung"
+                    required
+                  />
+                </div>
               </div>
 
-              {/* Kampus */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 uppercase">Kampus Terdekat *</label>
-                <select
-                  value={formData.id_kampus}
-                  onChange={(e) => setFormData({ ...formData, id_kampus: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 outline-none transition"
-                  required
-                >
-                  <option value="">-- Pilih Kampus --</option>
-                  <option value="KMP-TELU-01">Telkom University</option>
-                  <option value="KMP-ITB-01">ITB</option>
-                </select>
+              {/* Kategori Tempat (Visual Cards) */}
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Kategori Tempat *</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { value: "Cafe", label: "Kafe", icon: Coffee, activeStyle: "border-amber-500 bg-amber-50 text-amber-700 shadow-sm shadow-amber-100 ring-4 ring-amber-50" },
+                    { value: "Warkop", label: "Warkop", icon: Beer, activeStyle: "border-orange-500 bg-orange-50 text-orange-700 shadow-sm shadow-orange-100 ring-4 ring-orange-50" },
+                    { value: "Resto", label: "Restoran", icon: Utensils, activeStyle: "border-red-500 bg-red-50 text-red-700 shadow-sm shadow-red-100 ring-4 ring-red-50" },
+                    { value: "Coworking", label: "Workspace", icon: Laptop, activeStyle: "border-blue-500 bg-blue-50 text-blue-700 shadow-sm shadow-blue-100 ring-4 ring-blue-50" }
+                  ].map((cat) => {
+                    const isSelected = formData.kategori === cat.value;
+                    return (
+                      <button
+                        key={cat.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, kategori: cat.value })}
+                        className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 outline-none hover:scale-105 active:scale-95
+                          ${isSelected
+                            ? `${cat.activeStyle} font-black`
+                            : "border-gray-250 bg-gray-50 text-gray-500 hover:border-gray-355 hover:bg-gray-100/50"
+                          }`}
+                      >
+                        <cat.icon size={22} className={isSelected ? "" : "text-gray-400"} />
+                        <span className="text-xs font-bold">{cat.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Kategori */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 uppercase">Kategori Tempat</label>
-                <select
-                  value={formData.kategori}
-                  onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 border rounded-xl outline-none transition"
-                >
-                  <option value="">Pilih Kategori</option>
-                  <option value="Cafe">Cafe</option>
-                  <option value="Resto">Resto</option>
-                  <option value="Coworking">Coworking</option>
-                  <option value="Warkop">Warkop</option>
-                </select>
+              {/* Kampus Terdekat (Visual Badges) */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Kampus Terdekat *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: "KMP-TELU-01", label: "Telkom University" },
+                    { id: "KMP-ITB-01", label: "ITB Bandung" }
+                  ].map((campus) => {
+                    const isSelected = formData.id_kampus === campus.id;
+                    return (
+                      <button
+                        key={campus.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, id_kampus: campus.id })}
+                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 text-center outline-none hover:scale-102
+                          ${isSelected
+                            ? "border-blue-600 bg-blue-50 text-blue-700 font-extrabold shadow-sm ring-4 ring-blue-50"
+                            : "border-gray-250 bg-gray-50 text-gray-500 hover:border-gray-355 hover:bg-gray-100/50"
+                          }`}
+                      >
+                        <GraduationCap size={20} className={isSelected ? "text-blue-600" : "text-gray-400"} />
+                        <span className="text-xs font-bold">{campus.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Kisaran Harga */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 uppercase">Kisaran Harga</label>
-                <select
-                  value={formData.kisaran_harga}
-                  onChange={(e) => setFormData({ ...formData, kisaran_harga: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 border rounded-xl outline-none transition"
-                >
-                  <option value="">Pilih Harga</option>
-                  <option value="Murah">Murah (&lt; Rp 30rb)</option>
-                  <option value="Sedang">Sedang (Rp 30-70rb)</option>
-                  <option value="Mahal">Mahal (&gt; Rp 70rb)</option>
-                </select>
+              {/* Kisaran Harga (Visual Pills) */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Kisaran Harga</label>
+                <div className="flex gap-3">
+                  {[
+                    { value: "Murah", label: "Rp (Murah)", desc: "< Rp 30rb" },
+                    { value: "Sedang", label: "Rp Rp (Sedang)", desc: "Rp 30-70rb" },
+                    { value: "Mahal", label: "Rp Rp Rp (Mahal)", desc: "> Rp 70rb" }
+                  ].map((price) => {
+                    const isSelected = formData.kisaran_harga === price.value;
+                    return (
+                      <button
+                        key={price.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, kisaran_harga: price.value })}
+                        className={`flex-1 p-3 rounded-xl border-2 transition-all text-center flex flex-col justify-center items-center outline-none hover:scale-102
+                          ${isSelected
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-extrabold shadow-sm ring-4 ring-emerald-50"
+                            : "border-gray-250 bg-gray-50 text-gray-500 hover:border-gray-355 hover:bg-gray-100/50"
+                          }`}
+                      >
+                        <span className="text-xs font-black">{price.label}</span>
+                        <span className="text-[9px] opacity-75 mt-0.5 font-medium">{price.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Waktu Buka */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 uppercase">Waktu Buka *</label>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Waktu Buka *</label>
                 <input
                   type="time"
                   value={formData.waktu_buka}
                   onChange={(e) => setFormData({ ...formData, waktu_buka: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 outline-none transition"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:bg-white outline-none transition focus:ring-2 focus:ring-orange-100 font-medium text-sm text-gray-800"
                   required
                 />
               </div>
 
               {/* Waktu Tutup */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 uppercase">Waktu Tutup *</label>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Waktu Tutup *</label>
                 <input
                   type="time"
                   value={formData.waktu_tutup}
                   onChange={(e) => setFormData({ ...formData, waktu_tutup: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 border rounded-xl focus:border-orange-500 outline-none transition"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:bg-white outline-none transition focus:ring-2 focus:ring-orange-100 font-medium text-sm text-gray-800"
                   required
                 />
               </div>
