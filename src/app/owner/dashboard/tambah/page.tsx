@@ -338,10 +338,13 @@ export default function TambahTempatOwner() {
     setLantaiData(lantaiData.filter((_, i) => i !== idx));
   };
 
-  const handleChangeLantaiField = (idx: number, field: "namaLantai" | "tipeLantai", value: string) => {
-    const updated = [...lantaiData];
-    updated[idx] = { ...updated[idx], [field]: value };
-    setLantaiData(updated);
+  const handleChangeLantaiField = (floorIdx: number, field: "namaLantai" | "tipeLantai", value: string) => {
+    setLantaiData(prev => 
+      prev.map((f, idx) => {
+        if (idx !== floorIdx) return f;
+        return { ...f, [field]: value };
+      })
+    );
   };
 
   const handleTambahMeja = (floorIdx: number) => {
@@ -357,31 +360,47 @@ export default function TambahTempatOwner() {
       tipeLantai: floor.tipeLantai,
     };
     
-    setLantaiData(prev => {
-      const updated = [...prev];
-      updated[floorIdx].mejas = [...updated[floorIdx].mejas, newMeja];
-      return updated;
-    });
+    setLantaiData(prev => 
+      prev.map((f, idx) => {
+        if (idx !== floorIdx) return f;
+        return {
+          ...f,
+          mejas: [...f.mejas, newMeja]
+        };
+      })
+    );
     setSelectedTableId(newMeja.id);
   };
 
   const handleHapusMeja = (floorIdx: number, tableId: string) => {
-    setLantaiData(prev => {
-      const updated = [...prev];
-      updated[floorIdx].mejas = updated[floorIdx].mejas.filter(m => m.id !== tableId);
-      return updated;
-    });
+    setLantaiData(prev => 
+      prev.map((f, idx) => {
+        if (idx !== floorIdx) return f;
+        return {
+          ...f,
+          mejas: f.mejas.filter(m => m.id !== tableId)
+        };
+      })
+    );
     if (selectedTableId === tableId) setSelectedTableId(null);
   };
 
   const handleUpdateMeja = (floorIdx: number, tableIdx: number, field: keyof MejaConfig, value: any) => {
-    setLantaiData(prev => {
-      const updated = [...prev];
-      const mejas = [...updated[floorIdx].mejas];
-      mejas[tableIdx] = { ...mejas[tableIdx], [field]: value };
-      updated[floorIdx].mejas = mejas;
-      return updated;
-    });
+    setLantaiData(prev => 
+      prev.map((f, idx) => {
+        if (idx !== floorIdx) return f;
+        return {
+          ...f,
+          mejas: f.mejas.map((m, mIdx) => {
+            if (mIdx !== tableIdx) return m;
+            return {
+              ...m,
+              [field]: value
+            };
+          })
+        };
+      })
+    );
   };
 
   // --- HANDLER DRAG & MOVE (MOUSE & TOUCH) ---
@@ -401,12 +420,22 @@ export default function TambahTempatOwner() {
       x = Math.max(2, Math.min(92, x));
       y = Math.max(2, Math.min(90, y));
 
-      setLantaiData((prev) => {
-        const updated = JSON.parse(JSON.stringify(prev));
-        updated[floorIdx].mejas[tableIdx].x = parseFloat(x.toFixed(1));
-        updated[floorIdx].mejas[tableIdx].y = parseFloat(y.toFixed(1));
-        return updated;
-      });
+      setLantaiData(prev => 
+        prev.map((f, idx) => {
+          if (idx !== floorIdx) return f;
+          return {
+            ...f,
+            mejas: f.mejas.map((m, mIdx) => {
+              if (mIdx !== tableIdx) return m;
+              return {
+                ...m,
+                x: parseFloat(x.toFixed(1)),
+                y: parseFloat(y.toFixed(1))
+              };
+            })
+          };
+        })
+      );
     };
 
     const onMouseUp = () => {
@@ -435,12 +464,22 @@ export default function TambahTempatOwner() {
       x = Math.max(2, Math.min(92, x));
       y = Math.max(2, Math.min(90, y));
 
-      setLantaiData((prev) => {
-        const updated = JSON.parse(JSON.stringify(prev));
-        updated[floorIdx].mejas[tableIdx].x = parseFloat(x.toFixed(1));
-        updated[floorIdx].mejas[tableIdx].y = parseFloat(y.toFixed(1));
-        return updated;
-      });
+      setLantaiData(prev => 
+        prev.map((f, idx) => {
+          if (idx !== floorIdx) return f;
+          return {
+            ...f,
+            mejas: f.mejas.map((m, mIdx) => {
+              if (mIdx !== tableIdx) return m;
+              return {
+                ...m,
+                x: parseFloat(x.toFixed(1)),
+                y: parseFloat(y.toFixed(1))
+              };
+            })
+          };
+        })
+      );
     };
 
     const onTouchEnd = () => {
