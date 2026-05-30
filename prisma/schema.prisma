@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-   url      = "file:./dev.db"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -66,6 +66,8 @@ model Tempat {
   
   kisaran_harga String   //
   id_kampus     String   //
+  jumlah_meja   Int?
+  jumlah_lantai Int?
 
   // Kolom menu & foto tempat (upload file)
   menu_text   String?  // Deskripsi teks menu andalan (opsional)
