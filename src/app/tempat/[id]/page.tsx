@@ -2,13 +2,14 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2, MessageSquare } from "lucide-react";
+import { MapPin, Clock, Star, ArrowLeft, Wallet, Building, CheckCircle2, MessageSquare, UtensilsCrossed, BookOpen } from "lucide-react";
 import FavoriteActionCard from "./FavoriteActionCard";
 import ReviewForm from "@/app/detailtempat/reviewfrom";
 import StatusOperasional from "@/app/detailtempat/statusOperasional";
 import TempatMap from "@/components/Map";
 import EstimasiJarak from "@/app/detailtempat/estimasiJarak";
 import Footer from "@/components/Footer";
+import SeatingPreview from "./SeatingPreview";
 
 export default async function DetailTempatPage({ params }: { params: Promise<{ id: string }> }) {
 
@@ -26,6 +27,7 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
         include: { kategori: true },
       },
       places: true, // Ambil data ulasan/review untuk rating
+      mejas: true,  // Ambil data meja untuk pratinjau tata letak visual
     },
   });
 
@@ -152,6 +154,47 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
               ))}
             </div>
           </div>
+
+          {/* Menu & Andalan Kafe */}
+          {(tempat.menu_text || tempat.menu_gambar) && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
+                <UtensilsCrossed size={20} className="text-orange-500" /> Menu & Andalan Kafe
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                {tempat.menu_text && (
+                  <div className="space-y-3">
+                    <h4 className="font-extrabold text-gray-700 text-sm flex items-center gap-1.5">
+                      <BookOpen size={16} className="text-blue-500" /> Rekomendasi Menu
+                    </h4>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-gray-150/50">
+                      <p className="text-gray-600 text-sm whitespace-pre-line font-medium leading-relaxed">
+                        {tempat.menu_text}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {tempat.menu_gambar && (
+                  <div className="space-y-3 flex flex-col">
+                    <h4 className="font-extrabold text-gray-700 text-sm flex items-center gap-1.5">
+                      🖼️ Foto Daftar Menu
+                    </h4>
+                    <div className="relative w-full h-48 rounded-xl overflow-hidden border border-gray-200 flex-grow hover:shadow-md transition duration-300">
+                      <Image
+                        src={tempat.menu_gambar}
+                        alt="Foto Daftar Menu"
+                        fill
+                        className="object-cover hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Tata Letak Kursi Preview */}
+          <SeatingPreview mejas={tempat.mejas} />
 
           {/* Ulasan & Rating */}
           <div>
