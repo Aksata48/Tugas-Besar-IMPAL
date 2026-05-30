@@ -1034,7 +1034,7 @@ export default function TambahTempatOwner() {
 
                             return (
                               <div
-                                key={meja.id}
+                                key={`canvas-${meja.id}`}
                                 onMouseDown={(e) => handleTableDrag(e, idx, mIdx)}
                                 onTouchStart={(e) => handleTableTouch(e, idx, mIdx)}
                                 style={{ 
@@ -1078,7 +1078,7 @@ export default function TambahTempatOwner() {
                           const isSelected = selectedTableId === meja.id;
                           return (
                             <div 
-                              key={meja.id}
+                              key={`list-${meja.id}`}
                               onClick={() => setSelectedTableId(meja.id)}
                               className={`p-3 rounded-xl border transition-all cursor-pointer flex justify-between items-center gap-2
                                 ${isSelected 
