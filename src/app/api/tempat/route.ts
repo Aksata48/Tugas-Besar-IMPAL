@@ -150,33 +150,55 @@ export async function POST(request: NextRequest) {
     });
 
     // --- Buat data Meja secara massal jika lantaiData diberikan ---
-    // lantaiData adalah array of { namaLantai, jumlahMeja, kapasitasPerMeja }
     let totalMejaDbuat = 0;
     if (Array.isArray(lantaiData) && lantaiData.length > 0) {
       // Bangun flat array semua meja dari seluruh lantai
       const allMejas: {
         nomor_meja: string;
         nama_lantai: string;
+        tipe_lantai: string;
         kapasitas_kursi: number;
+        x: number;
+        y: number;
         tempatId: string;
       }[] = [];
 
       for (const lantai of lantaiData) {
-        const { namaLantai, jumlahMeja, kapasitasPerMeja } = lantai;
-        if (!namaLantai || !jumlahMeja) continue;
+        const { namaLantai, tipeLantai, mejas, jumlahMeja, kapasitasPerMeja } = lantai;
+        if (!namaLantai) continue;
 
-        const jumlah = Number(jumlahMeja) || 0;
-        const kapasitas = Number(kapasitasPerMeja) || 2;
+        const tipe = tipeLantai || "INDOOR";
 
-        for (let i = 1; i <= jumlah; i++) {
-          // Nomor meja diformat dengan leading zero jika < 10: "Meja 01", "Meja 02", ...
-          const nomorFormatted = i < 10 ? `Meja 0${i}` : `Meja ${i}`;
-          allMejas.push({
-            nomor_meja: nomorFormatted,
-            nama_lantai: namaLantai,
-            kapasitas_kursi: kapasitas,
-            tempatId: tempatBaru.id_tempat,
-          });
+        // Check if this is the new dynamic structure (with specific table configurations)
+        if (Array.isArray(mejas) && mejas.length > 0) {
+          for (const m of mejas) {
+            allMejas.push({
+              nomor_meja: m.nomorMeja || "Meja",
+              nama_lantai: namaLantai,
+              tipe_lantai: tipe,
+              kapasitas_kursi: Number(m.kapasitas) || 4,
+              x: Number(m.x) || 0,
+              y: Number(m.y) || 0,
+              tempatId: tempatBaru.id_tempat,
+            });
+          }
+        } else {
+          // Fallback ke model auto-generation lama jika mejas tidak dikirim
+          const jumlah = Number(jumlahMeja) || 0;
+          const kapasitas = Number(kapasitasPerMeja) || 2;
+
+          for (let i = 1; i <= jumlah; i++) {
+            const nomorFormatted = i < 10 ? `Meja 0${i}` : `Meja ${i}`;
+            allMejas.push({
+              nomor_meja: nomorFormatted,
+              nama_lantai: namaLantai,
+              tipe_lantai: tipe,
+              kapasitas_kursi: kapasitas,
+              x: 0,
+              y: 0,
+              tempatId: tempatBaru.id_tempat,
+            });
+          }
         }
       }
 

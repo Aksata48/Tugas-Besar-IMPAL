@@ -91,7 +91,10 @@ model Meja {
   id              String  @id @default(cuid())
   nomor_meja      String  // Contoh: "Meja 01"
   nama_lantai     String  // Contoh: "Lantai 1"
+  tipe_lantai     String? @default("INDOOR") // INDOOR / OUTDOOR
   kapasitas_kursi Int     // Contoh: 4
+  x               Float?  @default(0) // Koordinat X (%) untuk layout visual
+  y               Float?  @default(0) // Koordinat Y (%) untuk layout visual
 
   tempatId  String
   tempat    Tempat    @relation(fields: [tempatId], references: [id_tempat], onDelete: Cascade)

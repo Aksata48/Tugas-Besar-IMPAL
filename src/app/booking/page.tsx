@@ -404,9 +404,21 @@ function BookingForm() {
         </div>
       </div>
 
-      {/* PILIHAN LANTAI & MEJA — DINAMIS DARI DATABASE */}
+      {/* PILIHAN LANTAI & MEJA — MAP INTERAKTIF SEPERTI BIOSKOP */}
       <div className="mb-6 pt-4 border-t border-dashed border-gray-200">
-        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1 mb-3">Pilih Lantai & Meja</p>
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Pilih Lantai & Tata Letak Meja</p>
+          {selectedLantai && daftarMejaLantaiIni.length > 0 && (
+            <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase border tracking-widest
+              ${(daftarMejaLantaiIni[0] as any).tipe_lantai === "OUTDOOR" 
+                ? "bg-orange-50 text-orange-600 border-orange-100" 
+                : "bg-blue-50 text-blue-600 border-blue-100"
+              }
+            `}>
+              {(daftarMejaLantaiIni[0] as any).tipe_lantai || "INDOOR"}
+            </span>
+          )}
+        </div>
 
         {loadingMeja ? (
           <div className="flex items-center justify-center gap-2 py-6 text-gray-400 text-sm font-bold">
@@ -422,10 +434,11 @@ function BookingForm() {
             Meja belum tersedia untuk tempat ini. Hubungi Owner.
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
-            {/* Dropdown Lantai */}
+          <div className="space-y-4">
+            
+            {/* Pilihan Dropdown Lantai */}
             <div>
-              <label className="block mb-2 text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Lantai</label>
+              <label className="block mb-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pilih Lantai</label>
               <select
                 value={selectedLantai}
                 onChange={(e) => {
@@ -435,35 +448,95 @@ function BookingForm() {
                 }}
                 className="w-full border-none p-4 rounded-2xl text-sm font-bold bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-100"
               >
-                <option value="">-- Lantai --</option>
+                <option value="">-- Pilih Lantai --</option>
                 {daftarLantai.map((lt) => (
                   <option key={lt} value={lt}>{lt}</option>
                 ))}
               </select>
             </div>
 
-            {/* Dropdown Meja — isi setelah lantai dipilih */}
-            <div>
-              <label className="block mb-2 text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Meja</label>
-              <select
-                value={selectedMejaId}
-                onChange={(e) => {
-                  const mejaId = e.target.value;
-                  setSelectedMejaId(mejaId);
-                  const found = daftarMejaLantaiIni.find((m) => m.id === mejaId);
-                  setSelectedMejaLabel(found?.nomor_meja || "");
-                }}
-                disabled={!selectedLantai}
-                className="w-full border-none p-4 rounded-2xl text-sm font-bold bg-white outline-none shadow-sm focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
-              >
-                <option value="">-- Meja --</option>
-                {daftarMejaLantaiIni.map((meja) => (
-                  <option key={meja.id} value={meja.id}>
-                    {meja.nomor_meja} ({meja.kapasitas_kursi} kursi)
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Visual Cinema-Style Floor Plan Map */}
+            {selectedLantai && (
+              <div className="space-y-3">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pilih Meja langsung di Peta</label>
+                
+                {/* Visual Canvas Layout */}
+                <div 
+                  className="w-full h-80 rounded-3xl border border-gray-150 bg-slate-50 relative overflow-hidden shadow-inner"
+                  style={{
+                    backgroundImage: "linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px)",
+                    backgroundSize: "20px 20px"
+                  }}
+                >
+                  {/* Peta Meja */}
+                  {daftarMejaLantaiIni.map((meja, mIdx) => {
+                    let x = (meja as any).x;
+                    let y = (meja as any).y;
+                    
+                    // Fallback Auto-Grid jika koordinat 0 (backward compatibility)
+                    if ((x === 0 && y === 0) || x === null || y === null || x === undefined || y === undefined) {
+                      const cols = 3;
+                      const row = Math.floor(mIdx / cols);
+                      const col = mIdx % cols;
+                      x = 18 + col * 32;
+                      y = 20 + row * 25;
+                    }
+
+                    const isSelected = selectedMejaId === meja.id;
+
+                    return (
+                      <button
+                        key={meja.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMejaId(meja.id);
+                          setSelectedMejaLabel(meja.nomor_meja);
+                        }}
+                        style={{ 
+                          left: `${x}%`, 
+                          top: `${y}%`, 
+                          transform: "translate(-50%, -50%)" 
+                        }}
+                        className={`absolute w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all duration-150 shadow-md outline-none
+                          ${isSelected 
+                            ? "bg-emerald-500 text-white border-emerald-600 ring-4 ring-emerald-100 font-extrabold scale-110 shadow-emerald-200/50 z-10" 
+                            : "bg-white text-slate-700 border-slate-300 hover:border-emerald-400 hover:scale-105 hover:shadow-lg"
+                          }
+                        `}
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-tighter leading-none">
+                          {meja.nomor_meja.replace("Meja ", "M")}
+                        </span>
+                        <span className="text-[9px] opacity-80 mt-0.5 leading-none">
+                          👤{meja.kapasitas_kursi}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Map Legend */}
+                <div className="flex justify-center gap-6 py-2 bg-white rounded-2xl border border-gray-100 shadow-sm text-xs font-bold text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-emerald-600 bg-emerald-500" />
+                    <span>Terpilih</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 rounded-full border border-slate-350 bg-white" />
+                    <span>Tersedia</span>
+                  </div>
+                </div>
+
+                {/* Feedback Meja Terpilih */}
+                {selectedMejaLabel && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-2xl text-xs font-bold text-center animate-in fade-in duration-300">
+                    🎉 Anda memilih <span className="underline font-black">{selectedMejaLabel}</span> di {selectedLantai}.
+                  </div>
+                )}
+
+              </div>
+            )}
+
           </div>
         )}
       </div>

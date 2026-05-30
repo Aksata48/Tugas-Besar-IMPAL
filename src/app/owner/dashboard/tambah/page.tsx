@@ -3,18 +3,27 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Store, MapPin, Image as ImageIcon, UtensilsCrossed,
-  Plus, Trash2, Save, ArrowLeft, Upload, CheckCircle, Loader2
+  Plus, Trash2, Save, ArrowLeft, Upload, CheckCircle, Loader2,
+  Sun, Home, Sliders, Settings
 } from "lucide-react";
 import Link from "next/link";
 import TempatMap from "@/components/Map";
 
 // ============================================================
-// Tipe helper untuk konfigurasi lantai
+// Tipe helper untuk konfigurasi lantai & meja visual
 // ============================================================
+interface MejaConfig {
+  id: string;
+  nomorMeja: string;
+  kapasitas: number;
+  x: number; // Koordinat X (%) di grid
+  y: number; // Koordinat Y (%) di grid
+}
+
 interface LantaiConfig {
   namaLantai: string;
-  jumlahMeja: number;
-  kapasitasPerMeja: number;
+  tipeLantai: "INDOOR" | "OUTDOOR";
+  mejas: MejaConfig[];
 }
 
 // ============================================================
@@ -188,16 +197,38 @@ export default function TambahTempatOwner() {
   const [menuGambarPath, setMenuGambarPath] = useState(""); // Foto menu
   const [menuText, setMenuText] = useState(""); // Deskripsi menu teks
 
-  // 3. STATE LANTAI & MEJA (Dinamis — per-lantai konfigurasi cepat)
+  // 3. STATE LANTAI & MEJA (Layout Visual - Meja diposisikan secara custom)
   const [lantaiData, setLantaiData] = useState<LantaiConfig[]>([
-    { namaLantai: "Lantai 1", jumlahMeja: 5, kapasitasPerMeja: 4 },
+    { 
+      namaLantai: "Lantai 1", 
+      tipeLantai: "INDOOR",
+      mejas: [
+        { id: "m1", nomorMeja: "Meja 01", kapasitas: 4, x: 20, y: 25 },
+        { id: "m2", nomorMeja: "Meja 02", kapasitas: 4, x: 50, y: 25 },
+        { id: "m3", nomorMeja: "Meja 03", kapasitas: 4, x: 80, y: 25 },
+        { id: "m4", nomorMeja: "Meja 04", kapasitas: 2, x: 35, y: 65 },
+        { id: "m5", nomorMeja: "Meja 05", kapasitas: 2, x: 65, y: 65 },
+      ]
+    },
   ]);
 
-  // --- LOGIKA LANTAI ---
+  // State untuk melacak meja mana yang sedang digeser (floorIdx, tableIdx)
+  const [activeDrag, setActiveDrag] = useState<{ floorIdx: number; tableIdx: number } | null>(null);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+
+  // --- LOGIKA LANTAI & MEJA ---
   const handleTambahLantai = () => {
+    const nextIdx = lantaiData.length + 1;
     setLantaiData([
       ...lantaiData,
-      { namaLantai: `Lantai ${lantaiData.length + 1}`, jumlahMeja: 4, kapasitasPerMeja: 4 },
+      { 
+        namaLantai: `Lantai ${nextIdx}`, 
+        tipeLantai: "INDOOR",
+        mejas: [
+          { id: Math.random().toString(36).substring(2, 9), nomorMeja: "Meja 01", kapasitas: 4, x: 30, y: 40 },
+          { id: Math.random().toString(36).substring(2, 9), nomorMeja: "Meja 02", kapasitas: 4, x: 70, y: 40 }
+        ]
+      },
     ]);
   };
 
@@ -205,14 +236,119 @@ export default function TambahTempatOwner() {
     setLantaiData(lantaiData.filter((_, i) => i !== idx));
   };
 
-  const handleChangeLantai = (idx: number, field: keyof LantaiConfig, value: string) => {
+  const handleChangeLantaiField = (idx: number, field: "namaLantai" | "tipeLantai", value: string) => {
     const updated = [...lantaiData];
-    if (field === "jumlahMeja" || field === "kapasitasPerMeja") {
-      (updated[idx] as any)[field] = parseInt(value) || 0;
-    } else {
-      (updated[idx] as any)[field] = value;
-    }
+    updated[idx] = { ...updated[idx], [field]: value };
     setLantaiData(updated);
+  };
+
+  const handleTambahMeja = (floorIdx: number) => {
+    const floor = lantaiData[floorIdx];
+    const nextNum = floor.mejas.length + 1;
+    const nomorMeja = `Meja ${nextNum < 10 ? '0' + nextNum : nextNum}`;
+    const newMeja: MejaConfig = {
+      id: Math.random().toString(36).substring(2, 9),
+      nomorMeja,
+      kapasitas: 4,
+      x: 35 + Math.random() * 30,
+      y: 35 + Math.random() * 30,
+    };
+    
+    setLantaiData(prev => {
+      const updated = [...prev];
+      updated[floorIdx].mejas = [...updated[floorIdx].mejas, newMeja];
+      return updated;
+    });
+    setSelectedTableId(newMeja.id);
+  };
+
+  const handleHapusMeja = (floorIdx: number, tableId: string) => {
+    setLantaiData(prev => {
+      const updated = [...prev];
+      updated[floorIdx].mejas = updated[floorIdx].mejas.filter(m => m.id !== tableId);
+      return updated;
+    });
+    if (selectedTableId === tableId) setSelectedTableId(null);
+  };
+
+  const handleUpdateMeja = (floorIdx: number, tableIdx: number, field: keyof MejaConfig, value: any) => {
+    setLantaiData(prev => {
+      const updated = [...prev];
+      const mejas = [...updated[floorIdx].mejas];
+      mejas[tableIdx] = { ...mejas[tableIdx], [field]: value };
+      updated[floorIdx].mejas = mejas;
+      return updated;
+    });
+  };
+
+  // --- HANDLER DRAG & MOVE (MOUSE & TOUCH) ---
+  const handleTableDrag = (e: React.MouseEvent, floorIdx: number, tableIdx: number) => {
+    e.preventDefault();
+    const container = e.currentTarget.parentElement;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    setSelectedTableId(lantaiData[floorIdx].mejas[tableIdx].id);
+    
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      let x = ((moveEvent.clientX - rect.left) / rect.width) * 100;
+      let y = ((moveEvent.clientY - rect.top) / rect.height) * 100;
+
+      // Batasi koordinat antara 2% s.d. 92% agar tidak keluar grid visual
+      x = Math.max(2, Math.min(92, x));
+      y = Math.max(2, Math.min(90, y));
+
+      setLantaiData((prev) => {
+        const updated = JSON.parse(JSON.stringify(prev));
+        updated[floorIdx].mejas[tableIdx].x = parseFloat(x.toFixed(1));
+        updated[floorIdx].mejas[tableIdx].y = parseFloat(y.toFixed(1));
+        return updated;
+      });
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      setActiveDrag(null);
+    };
+
+    setActiveDrag({ floorIdx, tableIdx });
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  };
+
+  const handleTableTouch = (e: React.TouchEvent, floorIdx: number, tableIdx: number) => {
+    const container = e.currentTarget.parentElement;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    setSelectedTableId(lantaiData[floorIdx].mejas[tableIdx].id);
+    
+    const onTouchMove = (moveEvent: TouchEvent) => {
+      const touch = moveEvent.touches[0];
+      let x = ((touch.clientX - rect.left) / rect.width) * 100;
+      let y = ((touch.clientY - rect.top) / rect.height) * 100;
+
+      x = Math.max(2, Math.min(92, x));
+      y = Math.max(2, Math.min(90, y));
+
+      setLantaiData((prev) => {
+        const updated = JSON.parse(JSON.stringify(prev));
+        updated[floorIdx].mejas[tableIdx].x = parseFloat(x.toFixed(1));
+        updated[floorIdx].mejas[tableIdx].y = parseFloat(y.toFixed(1));
+        return updated;
+      });
+    };
+
+    const onTouchEnd = () => {
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      setActiveDrag(null);
+    };
+
+    setActiveDrag({ floorIdx, tableIdx });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd);
   };
 
   // --- SUBMIT FORM ---
@@ -251,8 +387,18 @@ export default function TambahTempatOwner() {
         gambar: gambarPath || null,
         menu_text: menuText.trim() || null,
         menu_gambar: menuGambarPath || null,
-        // Format lantaiData sesuai API: { namaLantai, jumlahMeja, kapasitasPerMeja }
-        lantaiData: lantaiData.filter((l) => l.namaLantai.trim() && l.jumlahMeja > 0),
+        kategori: formData.kategori,
+        // Format lantaiData visual agar kompatibel dengan API baru
+        lantaiData: lantaiData.filter((l) => l.namaLantai.trim() && l.mejas.length > 0).map(l => ({
+          namaLantai: l.namaLantai,
+          tipeLantai: l.tipeLantai,
+          mejas: l.mejas.map(m => ({
+            nomorMeja: m.nomorMeja,
+            kapasitas: m.kapasitas,
+            x: m.x,
+            y: m.y
+          }))
+        })),
       };
 
       const res = await fetch("/api/tempat", {
@@ -505,72 +651,190 @@ export default function TambahTempatOwner() {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-5 border-b pb-3">
               <div className="flex items-center space-x-2">
-                <MapPin className="text-blue-500" />
-                <h2 className="text-lg font-bold text-gray-800">Layout Lantai & Meja</h2>
+                <Sliders className="text-blue-500" />
+                <h2 className="text-lg font-bold text-gray-800">Visual Layout Lantai & Meja</h2>
               </div>
               <button
                 type="button"
                 onClick={handleTambahLantai}
-                className="flex items-center space-x-1 text-sm bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-semibold transition"
+                className="flex items-center space-x-1 text-sm bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-xl font-extrabold transition-all"
               >
                 <Plus size={16} /> <span>Tambah Lantai</span>
               </button>
             </div>
 
-            <p className="text-xs text-gray-400 mb-4">
-              Sistem akan otomatis membuat meja bernomor (Meja 01, Meja 02, ...) sesuai jumlah yang Anda input.
+            <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+              Posisikan meja cafe Anda secara visual sesuai tata letak asli kafenya. Pelanggan akan memilih meja secara interaktif berdasarkan posisi meja yang Anda edit di bawah ini saat melakukan pemesanan (seperti memesan kursi bioskop).
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-8">
               {lantaiData.map((lantai, idx) => (
-                <div key={idx} className="p-4 border-2 border-gray-100 rounded-xl bg-gray-50/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <input
-                      type="text"
-                      value={lantai.namaLantai}
-                      onChange={(e) => handleChangeLantai(idx, "namaLantai", e.target.value)}
-                      className="px-3 py-1.5 font-bold text-gray-700 bg-white border rounded-lg focus:border-blue-500 outline-none"
-                      placeholder="Nama Lantai (Contoh: Rooftop)"
-                    />
-                    {lantaiData.length > 1 && (
+                <div key={idx} className="p-5 border border-gray-200 rounded-2xl bg-white shadow-sm space-y-4">
+                  
+                  {/* Header Lantai & Tipe */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <input
+                        type="text"
+                        value={lantai.namaLantai}
+                        onChange={(e) => handleChangeLantaiField(idx, "namaLantai", e.target.value)}
+                        className="px-3 py-1.5 font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white outline-none w-44"
+                        placeholder="Nama Lantai (Contoh: Rooftop)"
+                      />
+                      {lantaiData.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleHapusLantai(idx)}
+                          className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition"
+                          title="Hapus Lantai"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Selector Tipe Lantai (Indoor / Outdoor) */}
+                    <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
                       <button
                         type="button"
-                        onClick={() => handleHapusLantai(idx)}
-                        className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition"
+                        onClick={() => handleChangeLantaiField(idx, "tipeLantai", "INDOOR")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all w-1/2 sm:w-auto justify-center ${
+                          lantai.tipeLantai === "INDOOR"
+                            ? "bg-white text-blue-600 shadow-sm"
+                            : "text-gray-500 hover:text-gray-900"
+                        }`}
                       >
-                        <Trash2 size={18} />
+                        <Home size={14} /> Indoor
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => handleChangeLantaiField(idx, "tipeLantai", "OUTDOOR")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all w-1/2 sm:w-auto justify-center ${
+                          lantai.tipeLantai === "OUTDOOR"
+                            ? "bg-white text-orange-600 shadow-sm"
+                            : "text-gray-500 hover:text-gray-900"
+                        }`}
+                      >
+                        <Sun size={14} /> Outdoor
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Grid Layout Builder */}
+                  <div className="relative">
+                    <div 
+                      className="w-full h-80 rounded-2xl border border-gray-200 bg-slate-50 relative overflow-hidden select-none cursor-crosshair shadow-inner"
+                      style={{
+                        backgroundImage: "linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px)",
+                        backgroundSize: "20px 20px"
+                      }}
+                    >
+                      {/* Petunjuk Visual */}
+                      <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-extrabold text-gray-500 uppercase tracking-wider border pointer-events-none shadow-sm flex items-center gap-1.5">
+                        <Settings size={12} className="animate-spin text-blue-600" />
+                        Gunakan Mouse/Sentuhan untuk menyeret meja
+                      </div>
+
+                      {/* Tampilkan meja-meja */}
+                      {lantai.mejas.map((meja, mIdx) => {
+                        const isSelected = selectedTableId === meja.id;
+                        const isDragging = activeDrag?.floorIdx === idx && activeDrag?.tableIdx === mIdx;
+
+                        return (
+                          <div
+                            key={meja.id}
+                            onMouseDown={(e) => handleTableDrag(e, idx, mIdx)}
+                            onTouchStart={(e) => handleTableTouch(e, idx, mIdx)}
+                            style={{ 
+                              left: `${meja.x}%`, 
+                              top: `${meja.y}%`, 
+                              transform: "translate(-50%, -50%)" 
+                            }}
+                            className={`absolute w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center cursor-move transition-shadow duration-150 select-none shadow-md
+                              ${isSelected 
+                                ? "bg-orange-500 text-white border-orange-600 ring-4 ring-orange-100 font-extrabold scale-110 z-10" 
+                                : "bg-white text-blue-700 border-blue-600 hover:border-orange-500 hover:scale-105 hover:shadow-lg"
+                              }
+                              ${isDragging ? "opacity-80 border-dashed shadow-2xl cursor-grabbing" : ""}
+                            `}
+                          >
+                            <span className="text-[10px] font-black uppercase tracking-tighter leading-none">{meja.nomorMeja.replace("Meja ", "M")}</span>
+                            <span className="text-[9px] opacity-80 mt-0.5 leading-none">👤{meja.kapasitas}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Pengaturan Meja Terpilih & Daftar Meja */}
+                  <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">Daftar Meja di {lantai.namaLantai}</h4>
+                      <button
+                        type="button"
+                        onClick={() => handleTambahMeja(idx)}
+                        className="flex items-center gap-1 text-xs font-extrabold text-blue-600 bg-white border border-blue-100 hover:border-blue-200 px-3 py-1.5 rounded-xl shadow-sm transition"
+                      >
+                        <Plus size={14} /> Tambah Meja
+                      </button>
+                    </div>
+
+                    {lantai.mejas.length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-2 italic">Belum ada meja di lantai ini. Klik 'Tambah Meja' untuk menambahkan.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-52 overflow-y-auto pr-1">
+                        {lantai.mejas.map((meja, mIdx) => {
+                          const isSelected = selectedTableId === meja.id;
+                          return (
+                            <div 
+                              key={meja.id}
+                              onClick={() => setSelectedTableId(meja.id)}
+                              className={`p-3 rounded-xl border transition-all cursor-pointer flex justify-between items-center gap-2
+                                ${isSelected 
+                                  ? "bg-orange-50 border-orange-200 ring-2 ring-orange-100" 
+                                  : "bg-white border-gray-200 hover:border-gray-300"
+                                }
+                              `}
+                            >
+                              <div className="flex-1 space-y-1">
+                                <input
+                                  type="text"
+                                  value={meja.nomorMeja}
+                                  onChange={(e) => handleUpdateMeja(idx, mIdx, "nomorMeja", e.target.value)}
+                                  className="w-full text-xs font-bold text-gray-800 bg-transparent border-b border-transparent focus:border-gray-300 outline-none"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <label className="text-[9px] font-bold text-gray-400 uppercase">Kursi:</label>
+                                  <select
+                                    value={meja.kapasitas}
+                                    onChange={(e) => handleUpdateMeja(idx, mIdx, "kapasitas", parseInt(e.target.value))}
+                                    className="bg-transparent text-[10px] font-extrabold text-slate-700 outline-none"
+                                  >
+                                    <option value={2}>2 Kursi</option>
+                                    <option value={4}>4 Kursi</option>
+                                    <option value={6}>6 Kursi</option>
+                                    <option value={8}>8 Kursi</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleHapusMeja(idx, meja.id);
+                                }}
+                                className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition"
+                                title="Hapus Meja"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase">Jumlah Meja</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={50}
-                        value={lantai.jumlahMeja}
-                        onChange={(e) => handleChangeLantai(idx, "jumlahMeja", e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border rounded-lg focus:border-blue-500 outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase">Kapasitas / Meja (Kursi)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={lantai.kapasitasPerMeja}
-                        onChange={(e) => handleChangeLantai(idx, "kapasitasPerMeja", e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border rounded-lg focus:border-blue-500 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-gray-400 mt-2">
-                    → Akan dibuat: {lantai.jumlahMeja} meja × {lantai.kapasitasPerMeja} kursi di {lantai.namaLantai || "lantai ini"}
-                  </p>
                 </div>
               ))}
             </div>
