@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { showToast } from "@/lib/toast";
 import {
   Store, PlusCircle, MapPin, Edit, Trash2, LogOut,
   X, Clock, Phone, CalendarCheck, CheckCircle, XCircle, AlertCircle, Wallet, ArrowLeft, Plus,
@@ -249,7 +250,7 @@ export default function OwnerDashboard() {
   };
 
   const handleTambah = async () => {
-    if (!form.nama_tempat || !form.alamat) return alert("Nama dan alamat wajib diisi!");
+    if (!form.nama_tempat || !form.alamat) return showToast("Nama dan alamat wajib diisi!", "warning");
     setLoadingSubmit(true);
     try {
       const res = await fetch("/api/tempat", {
@@ -266,11 +267,12 @@ export default function OwnerDashboard() {
         setTempatList((prev) => [...prev, data.tempat]);
         setModalTambah(false);
         setActiveNav("daftar");
+        showToast("Tempat baru berhasil didaftarkan! ✨", "success");
       } else {
-        alert(data.message || "Gagal menambah tempat");
+        showToast(data.message || "Gagal menambah tempat", "error");
       }
     } catch (e) {
-      alert("Terjadi error");
+      showToast("Terjadi error saat mendaftarkan tempat.", "error");
     } finally {
       setLoadingSubmit(false);
     }
@@ -338,9 +340,9 @@ export default function OwnerDashboard() {
   };
 
   const handleEdit = async () => {
-    if (!form.nama_tempat || !form.alamat) return alert("Nama dan alamat wajib diisi!");
-    if (!hargaMin || !hargaMax) return alert("Harga minimal dan maksimal wajib diisi!");
-    if (Number(hargaMin) > Number(hargaMax)) return alert("Harga minimal tidak boleh lebih besar dari harga maksimal!");
+    if (!form.nama_tempat || !form.alamat) return showToast("Nama dan alamat wajib diisi!", "warning");
+    if (!hargaMin || !hargaMax) return showToast("Harga minimal dan maksimal wajib diisi!", "warning");
+    if (Number(hargaMin) > Number(hargaMax)) return showToast("Harga minimal tidak boleh lebih besar dari harga maksimal!", "warning");
 
     const formattedPriceRange = `Rp ${Number(hargaMin).toLocaleString("id-ID")} - Rp ${Number(hargaMax).toLocaleString("id-ID")}`;
 
@@ -377,11 +379,12 @@ export default function OwnerDashboard() {
           prev.map((t) => (t.id_tempat === tempatDipilih?.id_tempat ? data.tempat : t))
         );
         setModalEdit(false);
+        showToast("Perubahan tempat berhasil disimpan! 💾", "success");
       } else {
-        alert(data.message || "Gagal mengedit tempat");
+        showToast(data.message || "Gagal mengedit tempat", "error");
       }
     } catch (e) {
-      alert("Terjadi error");
+      showToast("Terjadi error saat mengubah tempat.", "error");
     } finally {
       setLoadingSubmit(false);
     }
@@ -400,11 +403,12 @@ export default function OwnerDashboard() {
       if (data.success) {
         setTempatList((prev) => prev.filter((t) => t.id_tempat !== tempatDipilih?.id_tempat));
         setModalHapus(false);
+        showToast("Tempat berhasil dihapus dari sistem! 🗑️", "success");
       } else {
-        alert(data.message || "Gagal menghapus tempat");
+        showToast(data.message || "Gagal menghapus tempat", "error");
       }
     } catch (e) {
-      alert("Terjadi error");
+      showToast("Terjadi error saat menghapus tempat.", "error");
     } finally {
       setLoadingSubmit(false);
     }

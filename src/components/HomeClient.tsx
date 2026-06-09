@@ -10,7 +10,7 @@ const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=1600&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=1600&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1600&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1521017430209-a6af30f48d27?q=80&w=1600&auto=format&fit=crop"
+  "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=1600&auto=format&fit=crop"
 ];
 
 const CATEGORIES = [

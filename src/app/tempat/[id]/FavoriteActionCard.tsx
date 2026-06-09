@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 
+import { showToast } from "@/lib/toast";
+
 export default function FavoriteActionCard({ tempatId, lat, lng }: { tempatId: string; lat: number; lng: number }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +45,7 @@ export default function FavoriteActionCard({ tempatId, lat, lng }: { tempatId: s
   // 3. Fungsi Tambah/Hapus Favorit
   const handleFavoriteClick = async () => {
     if (!userId) {
-      alert("Silakan login terlebih dahulu untuk menyimpan favorit.");
+      showToast("Silakan login terlebih dahulu untuk menyimpan favorit.", "warning");
       return;
     }
 
@@ -58,11 +60,16 @@ export default function FavoriteActionCard({ tempatId, lat, lng }: { tempatId: s
       
       if (res.ok) {
         setIsFavorite(data.isFavorite);
+        showToast(
+          data.isFavorite ? "Berhasil menyimpan kafe ke favorit! ⭐" : "Kafe dihapus dari daftar favorit.",
+          data.isFavorite ? "success" : "info"
+        );
       } else {
-        alert(data.error || "Gagal mengubah status favorit");
+        showToast(data.error || "Gagal mengubah status favorit", "error");
       }
     } catch (error) {
       console.error("Error updating favorite:", error);
+      showToast("Koneksi bermasalah saat menyimpan favorit.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -74,10 +81,11 @@ export default function FavoriteActionCard({ tempatId, lat, lng }: { tempatId: s
     try {
       await navigator.clipboard.writeText(googleMapsUrl);
       setCopied(true);
+      showToast("Link Google Maps berhasil disalin! 🔗", "success");
       setTimeout(() => setCopied(false), 2500);
     } catch {
       // Fallback jika clipboard gagal
-      alert(`Link lokasi: ${googleMapsUrl}`);
+      showToast(`Lokasi: ${googleMapsUrl}`, "info");
     }
   };
 

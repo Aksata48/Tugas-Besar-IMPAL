@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { showToast } from "@/lib/toast";
+
 export default function AdminDashboard() {
   // Data dummy antrean booking dari pelanggan
   const [bookings, setBookings] = useState([
@@ -14,8 +16,12 @@ export default function AdminDashboard() {
     // Menghapus pelanggan dari daftar antrean
     setBookings(bookings.filter((b) => b.nama !== namaPelanggan));
     
-    // Memunculkan pop-up notifikasi sederhana
-    alert(`Booking atas nama ${namaPelanggan} berhasil di${status}! Sistem mengirimkan notifikasi ke pelanggan.`);
+    // Memunculkan custom toast notification
+    const isAccepted = status === "terima";
+    showToast(
+      `Booking atas nama ${namaPelanggan} berhasil di${status}! Notifikasi instan dikirim ke pelanggan. 🛎️`,
+      isAccepted ? "success" : "warning"
+    );
   };
 
   return (

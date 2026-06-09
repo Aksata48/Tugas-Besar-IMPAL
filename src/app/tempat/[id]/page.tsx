@@ -48,7 +48,7 @@ export default async function DetailTempatPage({ params }: { params: Promise<{ i
   const tempatLng: number = typeof tempat.longitude === "number" ? tempat.longitude : 107.6191;
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-20">
+    <main className="min-h-screen bg-gray-50">
 
       {/* HEADER / GAMBAR UTAMA */}
       <div className="relative w-full h-[400px] md:h-[500px]">

@@ -11,9 +11,30 @@ function toMinutes(hhmm: string): number {
 // ==========================================
 // 1. GET ALL BOOKINGS
 // ==========================================
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const url = new URL(req.url);
+    const tempatId = url.searchParams.get("tempatId");
+    const tanggal = url.searchParams.get("tanggal");
+
+    const where: any = {};
+    if (tempatId) {
+      where.tempatId = tempatId;
+    }
+    if (tanggal) {
+      const tanggalDate = new Date(tanggal);
+      const tanggalMulaiHari = new Date(tanggalDate);
+      tanggalMulaiHari.setHours(0, 0, 0, 0);
+      const tanggalAkhirHari = new Date(tanggalDate);
+      tanggalAkhirHari.setHours(23, 59, 59, 999);
+      where.tanggal = {
+        gte: tanggalMulaiHari,
+        lte: tanggalAkhirHari,
+      };
+    }
+
     const bookings = await prisma.booking.findMany({
+      where,
       include: {
         tempat: true,
         meja: true,

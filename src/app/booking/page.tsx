@@ -260,6 +260,87 @@ function BookingForm() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [bookingSummary, setBookingSummary] = useState<any>(null);
   const [selectedMonth, setSelectedMonth] = useState(5);
+  const [bookingsTanggal, setBookingsTanggal] = useState<any[]>([]);
+
+  // Fetch existing bookings for the selected date to calculate overlap/availability real-time
+  useEffect(() => {
+    if (!idDariUrl || !selectedDate) {
+      setBookingsTanggal([]);
+      return;
+    }
+    const fetchBookingsForDate = async () => {
+      try {
+        const res = await fetch(`/api/booking?tempatId=${idDariUrl}&tanggal=${selectedDate}`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.bookings)) {
+          setBookingsTanggal(data.bookings);
+        }
+      } catch (err) {
+        console.error("Failed to fetch bookings for date:", err);
+      }
+    };
+    fetchBookingsForDate();
+  }, [idDariUrl, selectedDate]);
+
+  // Helper: check if a specific table overlaps with current time selection
+  const getTableBookingInfo = (mejaId: string) => {
+    if (!selectedDate || !startTime || !endTime) return null;
+
+    const toMin = (hhmm: string): number => {
+      const [h, m] = hhmm.split(":").map(Number);
+      return (h || 0) * 60 + (m || 0);
+    };
+
+    const selStart = toMin(startTime);
+    const selEnd = toMin(endTime);
+
+    return bookingsTanggal.find(b => {
+      if (b.mejaId !== mejaId) return false;
+      if (b.status === "rejected") return false;
+      
+      const bStart = toMin(b.jam_mulai);
+      const bEnd = toMin(b.jam_selesai);
+
+      // Overlap: start1 < end2 and end1 > start2
+      return selStart < bEnd && selEnd > bStart;
+    });
+  };
+
+  // Auto-deselect if the selected table is now overlapping due to time changes
+  useEffect(() => {
+    if (selectedMejaId) {
+      const isBooked = !!getTableBookingInfo(selectedMejaId);
+      if (isBooked) {
+        setSelectedMejaId("");
+        setSelectedMejaLabel("");
+      }
+    }
+  }, [startTime, endTime, selectedDate, bookingsTanggal, selectedMejaId]);
+
+  // Find up to 3 alternative tables that are free during the selected date/time
+  const getAlternativeTables = () => {
+    if (!selectedDate || !startTime || !endTime) return [];
+    
+    // Filter out tables that are booked
+    const availableTables = mejaDB.filter(meja => {
+      const isBooked = !!getTableBookingInfo(meja.id);
+      return !isBooked;
+    });
+
+    // Optionally sort them: prefer tables in the currently selected floor, then similar capacity
+    return availableTables
+      .sort((a, b) => {
+        // Prefer currently selected floor
+        const aFloor = a.nama_lantai === selectedLantai?.split(" — ")[0];
+        const bFloor = b.nama_lantai === selectedLantai?.split(" — ")[0];
+        if (aFloor && !bFloor) return -1;
+        if (!aFloor && bFloor) return 1;
+        
+        // Prefer similar capacity
+        return a.kapasitas_kursi - b.kapasitas_kursi;
+      })
+      .slice(0, 3);
+  };
 
   // State pre-order menu
   const [menuItems, setMenuItems] = useState<MenuListItem[]>([]);
@@ -866,13 +947,17 @@ function BookingForm() {
                           y = 20 + row * 25;
                         }
 
+                        const bookingBentrokInfo = getTableBookingInfo(meja.id);
+                        const isBooked = !!bookingBentrokInfo;
                         const isSelected = selectedMejaId === meja.id;
 
                         return (
                           <button
                             key={meja.id}
                             type="button"
+                            disabled={isBooked}
                             onClick={() => {
+                              if (isBooked) return;
                               setSelectedMejaId(meja.id);
                               setSelectedMejaLabel(meja.nomor_meja);
                             }}
@@ -882,14 +967,16 @@ function BookingForm() {
                               transform: "translate(-50%, -50%)" 
                             }}
                             className={`absolute w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all duration-200 shadow-md outline-none ${
-                              isSelected ? theme.tableActiveStyle : theme.tableStyle
+                              isBooked 
+                                ? "bg-red-500 text-white border-red-650 cursor-not-allowed opacity-90 ring-4 ring-red-100/50 shadow-red-200/30" 
+                                : (isSelected ? theme.tableActiveStyle : theme.tableStyle)
                             }`}
                           >
                             <span className="text-[10px] font-black uppercase tracking-tighter leading-none">
                               {meja.nomor_meja.replace("Meja ", "M")}
                             </span>
                             <span className="text-[9px] opacity-80 mt-0.5 leading-none">
-                              👤{meja.kapasitas_kursi}
+                              {isBooked ? "🚫 Penuh" : `👤${meja.kapasitas_kursi}`}
                             </span>
                           </button>
                         );
@@ -906,7 +993,58 @@ function BookingForm() {
                         <span className="w-3.5 h-3.5 rounded-full border border-slate-350 bg-white" />
                         <span>Meja Tersedia</span>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-3.5 h-3.5 rounded-full border-2 border-red-600 bg-red-500" />
+                        <span>Meja Terisi (Penuh)</span>
+                      </div>
                     </div>
+
+                    {/* Dynamic Alternative Table Recommendations */}
+                    {selectedDate && startTime && endTime && (
+                      <div className="mt-6 bg-slate-50 border border-slate-200/60 p-5 rounded-3xl space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">💡</span>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Rekomendasi Meja Alternatif</h4>
+                            <p className="text-[10px] text-gray-500">Meja-meja yang kosong dan siap dipesan pada jam pilihan Anda.</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                          {getAlternativeTables().length > 0 ? (
+                            getAlternativeTables().map((meja) => (
+                              <button
+                                key={meja.id}
+                                type="button"
+                                onClick={() => {
+                                  const targetFloorKey = Object.keys(lantaiMap).find(k => k.startsWith(meja.nama_lantai));
+                                  if (targetFloorKey) {
+                                    setSelectedLantai(targetFloorKey);
+                                  }
+                                  setSelectedMejaId(meja.id);
+                                  setSelectedMejaLabel(meja.nomor_meja);
+                                }}
+                                className={`p-3 rounded-2xl border text-left transition-all duration-200 hover:scale-[1.02] flex flex-col justify-between h-20 shadow-sm hover:shadow cursor-pointer ${
+                                  selectedMejaId === meja.id
+                                    ? "bg-emerald-500 border-emerald-600 text-white"
+                                    : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                                }`}
+                              >
+                                <span className="text-xs font-black uppercase tracking-tight">{meja.nomor_meja}</span>
+                                <div className="flex justify-between w-full items-end mt-2">
+                                  <span className="text-[9px] font-bold opacity-80">{meja.nama_lantai}</span>
+                                  <span className="text-[10px] font-black">👤 {meja.kapasitas_kursi} Kursi</span>
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="col-span-3 text-center py-4 text-xs font-bold text-red-500 bg-red-50 rounded-2xl border border-red-100">
+                              😭 Semua meja penuh pada jam ini. Silakan pilih hari atau jam lain.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                   </div>
                 )}

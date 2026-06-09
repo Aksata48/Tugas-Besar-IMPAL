@@ -193,7 +193,9 @@ async function main() {
       harga: "Rp 25.000 - Rp 60.000",
       kategori: katKafe.id_kategori,
       fasilitas: [fasWifi.id_fasilitas, fasColokan.id_fasilitas, fasAC.id_fasilitas, fasMushola.id_fasilitas],
-      rating: 4.8, review: "Sangat nyaman untuk nugas", voucher: "PROMO10K"
+      rating: 4.8, review: "Sangat nyaman untuk nugas", voucher: "PROMO10K",
+      gambar: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=800&auto=format&fit=crop",
+      menu_text: "Signature Coffee, Warm Croissant, Premium Matcha Latte, Chocolate Waffle, Spaghetti Carbonara"
     },
     {
       id: "TMP-002",
@@ -203,7 +205,9 @@ async function main() {
       harga: "Rp 5.000 - Rp 20.000",
       kategori: katWarkop.id_kategori,
       fasilitas: [fasWifi.id_fasilitas, fasSmoking.id_fasilitas],
-      rating: 4.2, review: "Tempat nongkrong legendaris", voucher: null
+      rating: 4.2, review: "Tempat nongkrong legendaris", voucher: null,
+      gambar: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=800&auto=format&fit=crop",
+      menu_text: "Indomie Goreng Double, Indomie Rebus Telur, Kopi Susu ADD, Es Teh Manis Jumbo, Nutrisari Dingin"
     },
     {
       id: "TMP-003",
@@ -213,7 +217,9 @@ async function main() {
       harga: "Mulai Rp 35.000 / Hari",
       kategori: katWorkspace.id_kategori,
       fasilitas: [fasWifi.id_fasilitas, fasColokan.id_fasilitas, fasAC.id_fasilitas],
-      rating: 4.9, review: "Internet sangat kencang", voucher: "WORKFREE"
+      rating: 4.9, review: "Internet sangat kencang", voucher: "WORKFREE",
+      gambar: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop",
+      menu_text: "Ice Americano, Creamy Cafe Latte, Cold Brew Coffee, Crispy French Fries, Classic Sandwich"
     },
     {
       id: "TMP-004",
@@ -223,7 +229,9 @@ async function main() {
       harga: "Rp 15.000 - Rp 50.000 / Plate",
       kategori: katRestoran.id_kategori,
       fasilitas: [fasAC.id_fasilitas],
-      rating: 4.5, review: "Sushi murah tapi enak", voucher: "SUSHI5"
+      rating: 4.5, review: "Sushi murah tapi enak", voucher: "SUSHI5",
+      gambar: "https://images.unsplash.com/photo-1611143669185-af224c5e3252?q=80&w=800&auto=format&fit=crop",
+      menu_text: "Salmon Mentaki Sushi, Tuna Salad Roll, Chicken Gyoza, Ebi Tempura, Hot Miso Soup"
     }
   ];
 
@@ -239,6 +247,8 @@ async function main() {
         jam_buka: item.text_buka,
         kisaran_harga: item.harga,
         id_kampus: kampusTelU.id_kampus,
+        gambar: item.gambar,
+        menu_text: item.menu_text,
         kategori: {
           create: { id_kategori: item.kategori }
         },
@@ -264,30 +274,79 @@ async function main() {
     console.log(`Berhasil insert: ${item.nama}`);
   }
 
+  // 5b. SEED MEJA (Tables configuration)
+  console.log("Memulai seeding data meja/lantai...");
+  const mejasData = [
+    // Plumeria Cafe (TMP-001)
+    { nomor_meja: "Meja 01", nama_lantai: "Lantai 1", tipe_lantai: "INDOOR", kapasitas_kursi: 4, x: 25, y: 35, tempatId: "TMP-001" },
+    { nomor_meja: "Meja 02", nama_lantai: "Lantai 1", tipe_lantai: "INDOOR", kapasitas_kursi: 4, x: 50, y: 35, tempatId: "TMP-001" },
+    { nomor_meja: "Meja 03", nama_lantai: "Lantai 1", tipe_lantai: "INDOOR", kapasitas_kursi: 2, x: 75, y: 35, tempatId: "TMP-001" },
+    { nomor_meja: "Meja 04", nama_lantai: "Lantai 2", tipe_lantai: "OUTDOOR_BALKON", kapasitas_kursi: 2, x: 35, y: 45, tempatId: "TMP-001" },
+    { nomor_meja: "Meja 05", nama_lantai: "Lantai 2", tipe_lantai: "OUTDOOR_BALKON", kapasitas_kursi: 4, x: 65, y: 45, tempatId: "TMP-001" },
+
+    // Warkop ADD (TMP-002)
+    { nomor_meja: "Meja 01", nama_lantai: "Lantai 1", tipe_lantai: "OUTDOOR_TAMAN", kapasitas_kursi: 4, x: 30, y: 40, tempatId: "TMP-002" },
+    { nomor_meja: "Meja 02", nama_lantai: "Lantai 1", tipe_lantai: "OUTDOOR_TAMAN", kapasitas_kursi: 6, x: 70, y: 40, tempatId: "TMP-002" },
+
+    // Ruang Delapan Workspace (TMP-003)
+    { nomor_meja: "Meja 01", nama_lantai: "Lantai 1", tipe_lantai: "INDOOR", kapasitas_kursi: 2, x: 20, y: 35, tempatId: "TMP-003" },
+    { nomor_meja: "Meja 02", nama_lantai: "Lantai 1", tipe_lantai: "INDOOR", kapasitas_kursi: 4, x: 50, y: 35, tempatId: "TMP-003" },
+    { nomor_meja: "Meja 03", nama_lantai: "Lantai 1", tipe_lantai: "INDOOR", kapasitas_kursi: 2, x: 80, y: 35, tempatId: "TMP-003" },
+
+    // Tom Sushi (TMP-004)
+    { nomor_meja: "Meja 01", nama_lantai: "Lantai 1", tipe_lantai: "INDOOR", kapasitas_kursi: 4, x: 35, y: 45, tempatId: "TMP-004" },
+    { nomor_meja: "Meja 02", nama_lantai: "Lantai 1", tipe_lantai: "INDOOR", kapasitas_kursi: 4, x: 65, y: 45, tempatId: "TMP-004" },
+  ];
+
+  for (const m of mejasData) {
+    await prisma.meja.create({ data: m });
+  }
+  console.log("Seeding data meja selesai!");
+
   // 6. SEED BOOKING 
   const semuaTempat = await prisma.tempat.findMany();
   const user = await prisma.user.findFirst();
 
-  if (semuaTempat.length > 0) {
-    await prisma.booking.createMany({
-      data: [
-        {
-          tanggal: new Date(),
-          jam: "10:00",
-          nama: "Putri",
-          nomor: "081234567890",
-          tempatId: semuaTempat[0].id_tempat,
-          userId: user?.id || null,
-        },
-        {
-          tanggal: new Date(),
-          jam: "14:00",
-          nama: "Budi",
-          nomor: "089876543210",
-          tempatId: semuaTempat[0].id_tempat,
-          userId: user?.id || null,
-        },
-      ],
+  // Ambil meja contoh dari Plumeria Cafe untuk di-booking
+  const mejaPlumeria = await prisma.meja.findFirst({
+    where: { tempatId: "TMP-001" },
+  });
+
+  if (semuaTempat.length > 0 && mejaPlumeria) {
+    // Booking contoh 1: 10:00 - 12:00
+    await prisma.booking.create({
+      data: {
+        tanggal: new Date(),
+        jam: "10:00 - 12:00",
+        jam_mulai: "10:00",
+        jam_selesai: "12:00",
+        nama: "Putri",
+        nomor: "081234567890",
+        tempatId: "TMP-001",
+        mejaId: mejaPlumeria.id,
+        lantai: "Lantai 1 — Indoor",
+        nomorMeja: mejaPlumeria.nomor_meja,
+        userId: user?.id || null,
+        status: "accepted",
+      },
+    });
+
+    // Booking contoh 2: 14:00 - 16:00
+    await prisma.booking.create({
+      data: {
+        tanggal: new Date(),
+        jam: "14:00 - 16:00",
+        jam_mulai: "14:00",
+        jam_selesai: "16:00",
+        nama: "Budi",
+        nomor: "089876543210",
+        tempatId: "TMP-001",
+        mejaId: mejaPlumeria.id,
+        lantai: "Lantai 1 — Indoor",
+        nomorMeja: mejaPlumeria.nomor_meja,
+        userId: user?.id || null,
+        status: "accepted",
+      },
     });
 
     console.log("Seed booking berhasil!");
