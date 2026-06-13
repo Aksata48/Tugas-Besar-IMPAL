@@ -9,6 +9,8 @@
 
 **NongkiYuk** adalah platform berbasis web modern yang dirancang untuk membantu mahasiswa dan pencinta kopi menemukan tempat nongkrong (cafe/coworking space) terbaik di sekitar kampus mereka. Platform ini juga dilengkapi dengan fitur booking meja interaktif dan pembayaran DP secara online.
 
+🌐 **Website URL (Vercel)**: [https://nongkiyuk.vercel.app](https://nongkiyuk.vercel.app)
+
 ---
 
 ## 👥 Anggota Kelompok 01 (Aksata)
@@ -17,11 +19,11 @@ Kami adalah mahasiswa/i Universitas Telkom (IF-48-06) untuk mata kuliah **IMPAL*
 
 | No | Foto / Avatar | Nama Lengkap | NIM | Peran |
 |:---:|:---:|:---|:---|:---|
-| **1** | 🧑‍💻 | **Ryan Maulana Bagus Putra** | 103012430029 | Lead Developer / Backend / Integrasi API |
-| **2** | 🧑‍💻 | **Faza Fawzan Azima** | 103012400248 | UI/UX Designer / Frontend Developer |
-| **3** | 👩‍💻 | **Putri Rahayu Damayanti** | 103012400277 | System Analyst / QA & Testing |
-| **4** | 👩‍💻 | **Nurul Mukrima Amir** | 103012400047 | Database Designer / Technical Writer |
-| **5** | 👩‍💻 | **Putri Ayu Lestari** | 103012430055 | System Analyst / QA & Testing |
+| **1** | 🧑‍💻 | **Ryan Maulana Bagus Putra** | 103012430029 | Full Stack Developer |
+| **2** | 🧑‍💻 | **Faza Fawzan Azima** | 103012400248 | Lead Developer & Full Stack Developer |
+| **3** | 👩‍💻 | **Putri Rahayu Damayanti** | 103012400277 | Full Stack Developer |
+| **4** | 👩‍💻 | **Nurul Mukrima Amir** | 103012400047 | Full Stack Developer |
+| **5** | 👩‍💻 | **Putri Ayu Lestari** | 103012430055 | Full Stack Developer |
 
 ---
 
