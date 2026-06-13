@@ -69,6 +69,11 @@ export default function LeafletMap({
       });
     }
 
+    // Force map size recalculation after render to fix positioning issues
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+
     // Cleanup on unmount
     return () => {
       map.remove();
@@ -83,6 +88,7 @@ export default function LeafletMap({
     const marker = markerRef.current;
 
     if (map && marker) {
+      map.invalidateSize();
       const currentCenter = map.getCenter();
       // Pan smoothly only if coordinates are significantly different (more than 0.0001 degrees)
       if (Math.abs(currentCenter.lat - lat) > 0.0001 || Math.abs(currentCenter.lng - lng) > 0.0001) {
